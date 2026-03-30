@@ -1,0 +1,31 @@
+schema: spec-driven
+
+context: |
+  技术栈: TypeScript, React 19, Vite 7, Bun, Tauri 2 (Rust)
+  包管理器: Bun
+  前端: React 19 + TypeScript + Vite 7
+  后端: Rust (Tauri 2)
+  桌面应用: Tauri v2
+  项目名: manga-flow
+  语言要求: 所有文档和注释必须使用中文
+
+rules:
+  proposal:
+    - 所有提案文档必须使用中文撰写
+    - 提案需包含"非目标"章节
+    - 提案需说明测试策略
+  design:
+    - 所有设计文档必须使用中文撰写
+    - 设计需考虑 Tauri 前后端交互边界
+    - 需明确前端状态管理和 Rust 后端职责划分
+  specs:
+    - 所有规格文档必须使用中文撰写
+    - 规格需包含输入输出定义和边界条件
+  tasks:
+    - 所有任务文档必须使用中文撰写
+    - 采用 TDD 红绿测试模式开发（先写失败测试，再写实现代码使测试通过）
+    - 每个任务必须先编写测试（红灯阶段），再编写实现（绿灯阶段），最后重构
+    - 任务粒度控制在最大 2 小时内
+    - 前端测试使用 Vitest + React Testing Library
+    - Rust 后端测试使用 Cargo 内置测试框架
+    - 每个任务需明确标注：红灯（写测试）→ 绿灯（写实现）→ 重构 三个步骤
