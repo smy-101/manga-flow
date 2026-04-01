@@ -1,0 +1,57 @@
+.settings-page {
+  padding: 24px;
+}
+
+.settings-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.settings-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-path-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-path {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+  padding: 8px 12px;
+  background: var(--main-bg);
+  border-radius: 6px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  word-break: break-all;
+}
+
+.settings-error {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fff0f0;
+  color: var(--accent);
+  border-radius: var(--radius);
+  font-size: 13px;
+}

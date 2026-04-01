@@ -1,0 +1,64 @@
+.setup {
+  position: fixed;
+  inset: 0;
+  background: #0f0f1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+
+.setup-card {
+  text-align: center;
+  padding: 48px;
+  max-width: 400px;
+}
+
+.setup-icon {
+  font-size: 64px;
+  margin-bottom: 24px;
+}
+
+.setup-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.setup-desc {
+  font-size: 15px;
+  color: #8888a0;
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+.setup-btn {
+  padding: 12px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  background: #e94560;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  font-family: inherit;
+}
+
+.setup-btn:hover {
+  background: #c73652;
+}
+
+.setup-btn:active {
+  transform: scale(0.97);
+}
+
+.setup-error {
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: #fff0f0;
+  color: #e94560;
+  border-radius: 8px;
+  font-size: 14px;
+}
