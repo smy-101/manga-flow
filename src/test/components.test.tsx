@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BrowserRouter, Routes, Route } from "react-router";
 
@@ -224,5 +224,226 @@ describe("ConfirmDialog", () => {
     const modal = screen.getByText("test").closest(".modal")!;
     await userEvent.click(modal);
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe("PageSlider", () => {
+  it("renders range input with correct min/max/value", async () => {
+    const { default: PageSlider } = await import("../components/PageSlider");
+    render(<PageSlider currentIndex={2} totalPages={10} onChange={vi.fn()} />);
+    const input = screen.getByRole("slider");
+    expect(input).toHaveAttribute("min", "1");
+    expect(input).toHaveAttribute("max", "10");
+    expect(input).toHaveValue("3");
+  });
+
+  it("displays current page and total pages", async () => {
+    const { default: PageSlider } = await import("../components/PageSlider");
+    render(<PageSlider currentIndex={4} totalPages={20} onChange={vi.fn()} />);
+    expect(screen.getByText("5 / 20")).toBeInTheDocument();
+  });
+
+  it("does not call onChange during drag, only on release", async () => {
+    const { default: PageSlider } = await import("../components/PageSlider");
+    const onChange = vi.fn();
+    render(<PageSlider currentIndex={0} totalPages={10} onChange={onChange} />);
+    const input = screen.getByRole("slider");
+    fireEvent.change(input, { target: { value: "5" } });
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.pointerUp(input, { target: input, pointerId: 1 });
+    expect(onChange).toHaveBeenCalledWith(4);
+  });
+
+  it("hides when totalPages is 1", async () => {
+    const { default: PageSlider } = await import("../components/PageSlider");
+    const { container } = render(<PageSlider currentIndex={0} totalPages={1} onChange={vi.fn()} />);
+    expect(container.querySelector(".page-slider")).toBeNull();
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+  });
+});
+
+describe("ContinuousScrollViewer", () => {
+  const mockPages = [
+    { id: 1, chapter_id: 1, page_index: 1, file_name: "001.jpg", file_path: "/books/uuid/pages/001.jpg" },
+    { id: 2, chapter_id: 1, page_index: 2, file_name: "002.jpg", file_path: "/books/uuid/pages/002.jpg" },
+    { id: 3, chapter_id: 1, page_index: 3, file_name: "003.jpg", file_path: "/books/uuid/pages/003.jpg" },
+  ];
+
+  it("renders images for all pages", async () => {
+    const { default: ContinuousScrollViewer } = await import("../components/ContinuousScrollViewer");
+    const { container } = render(
+      <ContinuousScrollViewer pages={mockPages} currentIndex={0} onVisiblePageChange={vi.fn()} />,
+    );
+    const images = container.querySelectorAll("img");
+    expect(images).toHaveLength(3);
+  });
+
+  it("renders placeholder divs with correct data attributes", async () => {
+    const { default: ContinuousScrollViewer } = await import("../components/ContinuousScrollViewer");
+    render(
+      <ContinuousScrollViewer pages={mockPages} currentIndex={0} onVisiblePageChange={vi.fn()} />,
+    );
+    const placeholders = screen.getAllByTestId("scroll-page");
+    expect(placeholders).toHaveLength(3);
+  });
+
+  it("only renders images within buffer range for many pages", async () => {
+    // Use a no-op IntersectionObserver so renderRange stays at initial value
+    const SavedIO = globalThis.IntersectionObserver;
+    globalThis.IntersectionObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords(): IntersectionObserverEntry[] { return []; }
+    } as unknown as typeof IntersectionObserver;
+
+    try {
+      const { default: ContinuousScrollViewer } = await import("../components/ContinuousScrollViewer");
+      const manyPages = Array.from({ length: 20 }, (_, i) => ({
+        id: i + 1,
+        chapter_id: 1,
+        page_index: i + 1,
+        file_name: `${String(i + 1).padStart(3, "0")}.jpg`,
+        file_path: `/books/uuid/pages/${String(i + 1).padStart(3, "0")}.jpg`,
+      }));
+      const { container } = render(
+        <ContinuousScrollViewer pages={manyPages} currentIndex={10} onVisiblePageChange={vi.fn()} />,
+      );
+      // BUFFER=2, currentIndex=10 → initial renderRange=[8,12], 5 pages have <img>, rest placeholders
+      const images = container.querySelectorAll("img");
+      const placeholders = container.querySelectorAll(".continuous-scroll-page__placeholder");
+      expect(images.length).toBe(5);
+      expect(placeholders.length).toBe(15);
+    } finally {
+      globalThis.IntersectionObserver = SavedIO;
+    }
+  });
+
+  it("calls onVisiblePageChange when scroll detects a new visible page", async () => {
+    const { default: ContinuousScrollViewer } = await import("../components/ContinuousScrollViewer");
+    const onVisiblePageChange = vi.fn();
+
+    const { container } = render(
+      <ContinuousScrollViewer pages={mockPages} currentIndex={0} onVisiblePageChange={onVisiblePageChange} />,
+    );
+
+    const viewerContainer = container.querySelector(".continuous-scroll-viewer")!;
+    const pageElements = container.querySelectorAll("[data-page-index]");
+
+    // Simulate layout: container 800px tall → center at 400px
+    vi.spyOn(viewerContainer as HTMLElement, "getBoundingClientRect").mockReturnValue({
+      top: 0, bottom: 800, height: 800, left: 0, right: 600, width: 600, x: 0, y: 0,
+    } as DOMRect);
+
+    // Page 1 spans 200–600px, containing the center point
+    vi.spyOn(pageElements[1] as HTMLElement, "getBoundingClientRect").mockReturnValue({
+      top: 200, bottom: 600, height: 400, left: 0, right: 600, width: 600, x: 200, y: 200,
+    } as DOMRect);
+
+    fireEvent.scroll(viewerContainer);
+
+    expect(onVisiblePageChange).toHaveBeenCalledWith(1);
+  });
+});
+
+describe("ReaderToolbar", () => {
+  it("renders back button", async () => {
+    const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
+    render(
+      <ReaderToolbar
+        pageIndex={0}
+        totalPages={10}
+        readingMode="single"
+        onBack={vi.fn()}
+        onModeChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByTitle("返回书库")).toBeInTheDocument();
+  });
+
+  it("renders page info", async () => {
+    const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
+    render(
+      <ReaderToolbar
+        pageIndex={2}
+        totalPages={10}
+        readingMode="single"
+        onBack={vi.fn()}
+        onModeChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("3 / 10")).toBeInTheDocument();
+  });
+
+  it("renders mode toggle button", async () => {
+    const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
+    render(
+      <ReaderToolbar
+        pageIndex={0}
+        totalPages={10}
+        readingMode="single"
+        onBack={vi.fn()}
+        onModeChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByTitle("连续滚动")).toBeInTheDocument();
+  });
+
+  it("calls onBack when back button clicked", async () => {
+    const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
+    const onBack = vi.fn();
+    render(
+      <ReaderToolbar
+        pageIndex={0}
+        totalPages={10}
+        readingMode="single"
+        onBack={onBack}
+        onModeChange={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByTitle("返回书库"));
+    expect(onBack).toHaveBeenCalledOnce();
+  });
+
+  it("calls onModeChange when mode toggle clicked", async () => {
+    const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
+    const onModeChange = vi.fn();
+    render(
+      <ReaderToolbar
+        pageIndex={0}
+        totalPages={10}
+        readingMode="single"
+        onBack={vi.fn()}
+        onModeChange={onModeChange}
+      />,
+    );
+    await userEvent.click(screen.getByTitle("连续滚动"));
+    expect(onModeChange).toHaveBeenCalledWith("continuous");
+  });
+
+  it("reflects current mode via aria-pressed", async () => {
+    const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
+    const { rerender } = render(
+      <ReaderToolbar
+        pageIndex={0}
+        totalPages={10}
+        readingMode="single"
+        onBack={vi.fn()}
+        onModeChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByTitle("连续滚动")).toHaveAttribute("aria-pressed", "false");
+
+    const { default: ReaderToolbar2 } = await import("../components/ReaderToolbar");
+    rerender(
+      <ReaderToolbar2
+        pageIndex={0}
+        totalPages={10}
+        readingMode="continuous"
+        onBack={vi.fn()}
+        onModeChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByTitle("单页模式")).toHaveAttribute("aria-pressed", "true");
   });
 });

@@ -1,0 +1,26 @@
+.continuous-scroll-viewer {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.continuous-scroll-page {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.continuous-scroll-page img {
+  width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.continuous-scroll-page__placeholder {
+  width: 100%;
+  min-height: 80vh;
+}

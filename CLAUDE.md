@@ -52,3 +52,15 @@ cd src-tauri && cargo test
 ## OpenSpec
 
 The project uses OpenSpec tooling (skills in `.claude/`) for spec-driven development. Change artifacts live in `openspec/changes/`. Specs are in Chinese.
+
+## OpenSpec + Superpowers
+
+OpenSpec manages specs and tasks (what to do), Superpowers manages the implementation process (how to do it). The workflow stages are:
+
+1. **Explore** — `opsx:explore` + `brainstorming` — 先发散再收敛
+2. **Plan** — `opsx:propose` / `opsx:ff` + `writing-plans` — 产出变更产物
+3. **Implement** — `opsx:apply` + `executing-plans` / `test-driven-development` — TDD 实施
+4. **Verify** — `opsx:verify` + `verification-before-completion` — 双重验证
+5. **Finish** — `opsx:archive` + `finishing-a-development-branch` — 归档与分支集成
+
+Detailed mapping is in `openspec/config.yaml` under `workflow`.

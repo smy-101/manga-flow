@@ -1,13 +1,15 @@
 import { useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import { useReaderStore } from "../stores/readerStore";
+import type { ReadingMode } from "../stores/readerStore";
 import { pageRepo } from "../repos/pageRepo";
 import { progressRepo } from "../repos/progressRepo";
+import ReaderToolbar from "../components/ReaderToolbar";
+import SinglePageViewer from "../components/SinglePageViewer";
+import ContinuousScrollViewer from "../components/ContinuousScrollViewer";
+import type { ContinuousScrollViewerHandle } from "../components/ContinuousScrollViewer";
+import PageSlider from "../components/PageSlider";
 import "./Reader.css";
-
-/** Click area division: left/right fraction for prev/next page */
-const CLICK_REGION_DIVISIONS = 3;
 
 /** Debounce interval for progress saves (ms) */
 const PROGRESS_SAVE_DELAY = 500;
@@ -19,25 +21,26 @@ export default function Reader() {
   const {
     pages,
     currentIndex,
+    readingMode,
     setBookId,
     setPages,
     setCurrentIndex,
+    setReadingMode,
     nextPage,
     prevPage,
   } = useReaderStore();
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollViewerRef = useRef<ContinuousScrollViewerHandle>(null);
 
   useEffect(() => {
     if (!bookIdNum) return;
     setBookId(bookIdNum);
 
     async function load() {
-      // Load all pages across all chapters for sequential reading
       const allPages = await pageRepo.getByBookId(bookIdNum);
       setPages(allPages);
 
-      // Check for existing progress
       const progress = await progressRepo.getByBookId(bookIdNum);
       if (progress && progress.page_index > 0) {
         setCurrentIndex(progress.page_index - 1);
@@ -70,15 +73,28 @@ export default function Reader() {
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") {
-        nextPage();
-      } else if (e.key === "ArrowLeft") {
-        prevPage();
-      } else if (e.key === "Escape") {
+      if (e.key === "Escape") {
         navigate("/");
+        return;
+      }
+      if (readingMode === "single") {
+        if (e.key === "ArrowRight") {
+          nextPage();
+        } else if (e.key === "ArrowLeft") {
+          prevPage();
+        }
+      } else {
+        const SCROLL_STEP = 300;
+        if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+          e.preventDefault();
+          scrollViewerRef.current?.scrollBy(SCROLL_STEP);
+        } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+          e.preventDefault();
+          scrollViewerRef.current?.scrollBy(-SCROLL_STEP);
+        }
       }
     },
-    [nextPage, prevPage, navigate],
+    [readingMode, nextPage, prevPage, navigate],
   );
 
   useEffect(() => {
@@ -86,18 +102,20 @@ export default function Reader() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const third = rect.width / CLICK_REGION_DIVISIONS;
-    if (x < third) {
-      prevPage();
-    } else if (x > third * 2) {
-      nextPage();
-    }
-  };
+  const handleModeChange = useCallback(
+    (mode: ReadingMode) => {
+      setReadingMode(mode);
+    },
+    [setReadingMode],
+  );
 
-  const currentPage = pages[currentIndex];
+  const handleVisiblePageChange = useCallback(
+    (index: number) => {
+      setCurrentIndex(index);
+    },
+    [setCurrentIndex],
+  );
+
   const totalPages = pages.length;
 
   if (pages.length === 0) {
@@ -110,26 +128,34 @@ export default function Reader() {
 
   return (
     <div className="reader">
-      <div className="reader-topbar">
-        <button className="reader-back" onClick={() => navigate("/")} title="返回书库">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        <span className="reader-page-info">
-          {currentIndex + 1} / {totalPages}
-        </span>
-        <div style={{ width: 36 }} />
-      </div>
-      <div className="reader-image-area" onClick={handleClick}>
-        {currentPage && (
-          <img
-            className="reader-image"
-            src={convertFileSrc(currentPage.file_path)}
-            alt={`Page ${currentIndex + 1}`}
-          />
-        )}
-      </div>
+      <ReaderToolbar
+        pageIndex={currentIndex}
+        totalPages={totalPages}
+        readingMode={readingMode}
+        onBack={() => navigate("/")}
+        onModeChange={handleModeChange}
+      />
+      {readingMode === "single" ? (
+        <SinglePageViewer
+          pages={pages}
+          currentIndex={currentIndex}
+          onNext={nextPage}
+          onPrev={prevPage}
+        />
+      ) : (
+        <ContinuousScrollViewer
+          ref={scrollViewerRef}
+          key={bookIdNum}
+          pages={pages}
+          currentIndex={currentIndex}
+          onVisiblePageChange={handleVisiblePageChange}
+        />
+      )}
+      <PageSlider
+        currentIndex={currentIndex}
+        totalPages={totalPages}
+        onChange={setCurrentIndex}
+      />
     </div>
   );
 }

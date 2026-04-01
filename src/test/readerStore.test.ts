@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useReaderStore } from "../stores/readerStore";
+import { useReaderStore, getPreloadRange } from "../stores/readerStore";
 import type { Page } from "../db/types";
 
 const mockPages: Page[] = [
@@ -14,6 +14,7 @@ describe("useReaderStore", () => {
       bookId: null,
       pages: [],
       currentIndex: 0,
+      readingMode: "single",
     });
   });
 
@@ -62,5 +63,46 @@ describe("useReaderStore", () => {
   it("sets pages directly", () => {
     useReaderStore.getState().setPages(mockPages);
     expect(useReaderStore.getState().pages).toEqual(mockPages);
+  });
+
+  it("defaults readingMode to single", () => {
+    expect(useReaderStore.getState().readingMode).toBe("single");
+  });
+
+  it("switches readingMode via setReadingMode", () => {
+    useReaderStore.getState().setReadingMode("continuous");
+    expect(useReaderStore.getState().readingMode).toBe("continuous");
+    useReaderStore.getState().setReadingMode("single");
+    expect(useReaderStore.getState().readingMode).toBe("single");
+  });
+});
+
+describe("getPreloadRange", () => {
+  it("returns surrounding pages with default window 2", () => {
+    expect(getPreloadRange(5, 10)).toEqual([3, 4, 6, 7]);
+  });
+
+  it("clamps to lower bound at start of book", () => {
+    expect(getPreloadRange(0, 10)).toEqual([1, 2]);
+  });
+
+  it("clamps to upper bound at end of book", () => {
+    expect(getPreloadRange(9, 10)).toEqual([7, 8]);
+  });
+
+  it("returns empty when only one page", () => {
+    expect(getPreloadRange(0, 1)).toEqual([]);
+  });
+
+  it("handles page 1 of small book", () => {
+    expect(getPreloadRange(1, 3)).toEqual([0, 2]);
+  });
+
+  it("respects custom window size", () => {
+    expect(getPreloadRange(5, 10, 1)).toEqual([4, 6]);
+  });
+
+  it("handles window larger than available pages", () => {
+    expect(getPreloadRange(2, 4, 5)).toEqual([0, 1, 3]);
   });
 });

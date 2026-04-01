@@ -36,3 +36,33 @@ rules:
     - 前端只写 store 单元测试、repo 单元测试、可复用组件测试，不写页面级测试
     - Rust 后端测试使用 Cargo 内置测试框架，测试写在同文件的 #[cfg(test)] 模块中
     - 每个任务需明确标注：红灯（写测试）→ 绿灯（写实现）→ 重构 三个步骤
+
+workflow:
+  description: |
+    OpenSpec 管理规格和任务（做什么），Superpowers 管理实施过程（怎么做）。
+    两者按以下流程衔接，Superpowers 技能在对应阶段自动触发。
+  stages:
+    - name: 探索与构思
+      openspec: opsx:explore
+      superpowers: brainstorming
+      说明: 先用 brainstorming 充分发散，再用 explore 做规格化收敛
+
+    - name: 规格与计划
+      openspec: opsx:propose / opsx:ff
+      superpowers: writing-plans
+      说明: OpenSpec 产出变更产物（proposal、design、spec、tasks），计划从产物中自然得出
+
+    - name: 实施
+      openspec: opsx:apply
+      superpowers: [executing-plans, test-driven-development, subagent-driven-development]
+      说明: 用 apply 管理任务执行顺序，Superpowers 的 TDD 和并行 agents 负责具体实施
+
+    - name: 验证
+      openspec: opsx:verify
+      superpowers: verification-before-completion
+      说明: 两者互补——verify 检查产物一致性，verification-before-completion 检查代码质量
+
+    - name: 收尾
+      openspec: opsx:archive
+      superpowers: finishing-a-development-branch
+      说明: 先 verify/archive 归档变更，再用 finishing-a-development-branch 处理分支集成
