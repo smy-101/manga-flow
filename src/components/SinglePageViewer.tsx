@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { getPreloadRange } from "../stores/readerStore";
+import type { ReadingDirection } from "../stores/readerStore";
 import type { Page } from "../db/types";
 import "./SinglePageViewer.css";
 
@@ -9,6 +10,7 @@ const CLICK_REGION_DIVISIONS = 3;
 interface SinglePageViewerProps {
   pages: Page[];
   currentIndex: number;
+  readingDirection?: ReadingDirection;
   onNext: () => void;
   onPrev: () => void;
 }
@@ -16,6 +18,7 @@ interface SinglePageViewerProps {
 export default function SinglePageViewer({
   pages,
   currentIndex,
+  readingDirection = "ltr",
   onNext,
   onPrev,
 }: SinglePageViewerProps) {
@@ -29,13 +32,14 @@ export default function SinglePageViewer({
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const third = rect.width / CLICK_REGION_DIVISIONS;
+      const isRtl = readingDirection === "rtl";
       if (x < third) {
-        onPrev();
+        isRtl ? onNext() : onPrev();
       } else if (x > third * 2) {
-        onNext();
+        isRtl ? onPrev() : onNext();
       }
     },
-    [onNext, onPrev],
+    [onNext, onPrev, readingDirection],
   );
 
   const currentPage = pages[currentIndex];

@@ -10,6 +10,8 @@ export default function Settings() {
   const setLibraryPath = useSettingsStore((s) => s.setLibraryPath);
   const defaultReadingMode = useSettingsStore((s) => s.defaultReadingMode);
   const setDefaultReadingMode = useSettingsStore((s) => s.setDefaultReadingMode);
+  const defaultReadingDirection = useSettingsStore((s) => s.defaultReadingDirection);
+  const setDefaultReadingDirection = useSettingsStore((s) => s.setDefaultReadingDirection);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,6 +65,23 @@ export default function Settings() {
               onClick={() => setDefaultReadingMode("continuous")}
             >
               连续滚动
+            </button>
+          </div>
+        </div>
+        <div className="settings-field">
+          <label className="settings-label">默认阅读方向</label>
+          <div className="settings-mode-options">
+            <button
+              className={`settings-mode-btn ${defaultReadingDirection === "ltr" ? "settings-mode-btn--active" : ""}`}
+              onClick={() => setDefaultReadingDirection("ltr")}
+            >
+              从左到右
+            </button>
+            <button
+              className={`settings-mode-btn ${defaultReadingDirection === "rtl" ? "settings-mode-btn--active" : ""}`}
+              onClick={() => setDefaultReadingDirection("rtl")}
+            >
+              从右到左
             </button>
           </div>
         </div>

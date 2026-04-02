@@ -53,3 +53,9 @@ export interface ImportState {
   message?: string;
   progress?: number;
 }
+
+export interface BookPreference {
+  book_id: number;
+  reading_mode: string | null;
+  reading_direction: string | null;
+}

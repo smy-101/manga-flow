@@ -360,110 +360,57 @@ describe("ContinuousScrollViewer", () => {
 });
 
 describe("ReaderToolbar", () => {
+  const toolbarProps = {
+    visible: true,
+    pageIndex: 0,
+    totalPages: 10,
+    readingMode: "single" as const,
+    readingDirection: "ltr" as const,
+    onBack: vi.fn(),
+    onModeChange: vi.fn(),
+    onDirectionChange: vi.fn(),
+  };
+
   it("renders back button", async () => {
     const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
-    render(
-      <ReaderToolbar
-        visible={true}
-        pageIndex={0}
-        totalPages={10}
-        readingMode="single"
-        onBack={vi.fn()}
-        onModeChange={vi.fn()}
-      />,
-    );
+    render(<ReaderToolbar {...toolbarProps} />);
     expect(screen.getByTitle("返回书库")).toBeInTheDocument();
   });
 
   it("renders page info", async () => {
     const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
-    render(
-      <ReaderToolbar
-        visible={true}
-        pageIndex={2}
-        totalPages={10}
-        readingMode="single"
-        onBack={vi.fn()}
-        onModeChange={vi.fn()}
-      />,
-    );
+    render(<ReaderToolbar {...toolbarProps} pageIndex={2} />);
     expect(screen.getByText("3 / 10")).toBeInTheDocument();
   });
 
-  it("renders mode toggle button", async () => {
+  it("renders settings gear button", async () => {
     const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
-    render(
-      <ReaderToolbar
-        visible={true}
-        pageIndex={0}
-        totalPages={10}
-        readingMode="single"
-        onBack={vi.fn()}
-        onModeChange={vi.fn()}
-      />,
-    );
-    expect(screen.getByTitle("连续滚动")).toBeInTheDocument();
+    render(<ReaderToolbar {...toolbarProps} />);
+    expect(screen.getByTitle("设置")).toBeInTheDocument();
   });
 
   it("calls onBack when back button clicked", async () => {
     const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
     const onBack = vi.fn();
-    render(
-      <ReaderToolbar
-        visible={true}
-        pageIndex={0}
-        totalPages={10}
-        readingMode="single"
-        onBack={onBack}
-        onModeChange={vi.fn()}
-      />,
-    );
+    render(<ReaderToolbar {...toolbarProps} onBack={onBack} />);
     await userEvent.click(screen.getByTitle("返回书库"));
     expect(onBack).toHaveBeenCalledOnce();
   });
 
-  it("calls onModeChange when mode toggle clicked", async () => {
+  it("opens settings panel when gear button clicked", async () => {
     const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
-    const onModeChange = vi.fn();
-    render(
-      <ReaderToolbar
-        visible={true}
-        pageIndex={0}
-        totalPages={10}
-        readingMode="single"
-        onBack={vi.fn()}
-        onModeChange={onModeChange}
-      />,
-    );
-    await userEvent.click(screen.getByTitle("连续滚动"));
-    expect(onModeChange).toHaveBeenCalledWith("continuous");
+    render(<ReaderToolbar {...toolbarProps} />);
+    await userEvent.click(screen.getByTitle("设置"));
+    expect(screen.getByText("阅读模式")).toBeInTheDocument();
+    expect(screen.getByText("阅读方向")).toBeInTheDocument();
   });
 
-  it("reflects current mode via aria-pressed", async () => {
+  it("calls onModeChange when mode option clicked in settings panel", async () => {
     const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
-    const { rerender } = render(
-      <ReaderToolbar
-        visible={true}
-        pageIndex={0}
-        totalPages={10}
-        readingMode="single"
-        onBack={vi.fn()}
-        onModeChange={vi.fn()}
-      />,
-    );
-    expect(screen.getByTitle("连续滚动")).toHaveAttribute("aria-pressed", "false");
-
-    const { default: ReaderToolbar2 } = await import("../components/ReaderToolbar");
-    rerender(
-      <ReaderToolbar2
-        visible={true}
-        pageIndex={0}
-        totalPages={10}
-        readingMode="continuous"
-        onBack={vi.fn()}
-        onModeChange={vi.fn()}
-      />,
-    );
-    expect(screen.getByTitle("单页模式")).toHaveAttribute("aria-pressed", "true");
+    const onModeChange = vi.fn();
+    render(<ReaderToolbar {...toolbarProps} onModeChange={onModeChange} />);
+    await userEvent.click(screen.getByTitle("设置"));
+    await userEvent.click(screen.getByText("连续滚动"));
+    expect(onModeChange).toHaveBeenCalledWith("continuous");
   });
 });

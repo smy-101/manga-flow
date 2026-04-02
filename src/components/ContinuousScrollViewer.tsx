@@ -1,13 +1,16 @@
 import { useEffect, useRef, useCallback, useState, forwardRef, useImperativeHandle } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Page } from "../db/types";
+import type { ReadingDirection } from "../stores/readerStore";
 import "./ContinuousScrollViewer.css";
 
 const BUFFER = 2;
+const SCROLL_STEP = 300;
 
 interface ContinuousScrollViewerProps {
   pages: Page[];
   currentIndex: number;
+  readingDirection?: ReadingDirection;
   onVisiblePageChange: (index: number) => void;
 }
 
@@ -17,7 +20,7 @@ export interface ContinuousScrollViewerHandle {
 
 const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, ContinuousScrollViewerProps>(
   function ContinuousScrollViewer(
-    { pages, currentIndex, onVisiblePageChange }: ContinuousScrollViewerProps,
+    { pages, currentIndex, readingDirection = "ltr", onVisiblePageChange }: ContinuousScrollViewerProps,
     ref,
   ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,12 +30,34 @@ const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, Continuo
   const initialScrollDone = useRef(false);
   const settlingRef = useRef(false);
   const heightsRef = useRef<Map<number, number>>(new Map());
+  const isRtl = readingDirection === "rtl";
 
   useImperativeHandle(ref, () => ({
     scrollBy(delta: number) {
       containerRef.current?.scrollBy({ top: delta, behavior: "smooth" });
     },
   }), []);
+
+  // Keyboard scrolling: RTL reverses ← →, ↑ ↓ unchanged
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const scrollForward = isRtl ? "ArrowLeft" : "ArrowRight";
+      const scrollBack = isRtl ? "ArrowRight" : "ArrowLeft";
+      if (e.key === "ArrowDown" || e.key === scrollForward) {
+        e.preventDefault();
+        container.scrollBy({ top: SCROLL_STEP, behavior: "smooth" });
+      } else if (e.key === "ArrowUp" || e.key === scrollBack) {
+        e.preventDefault();
+        container.scrollBy({ top: -SCROLL_STEP, behavior: "smooth" });
+      }
+    };
+
+    container.addEventListener("keydown", handleKeyDown);
+    return () => container.removeEventListener("keydown", handleKeyDown);
+  }, [isRtl]);
 
   // Virtual rendering: only render <img> for visible ± buffer pages
   const [renderRange, setRenderRange] = useState<[number, number]>(() => [
@@ -236,7 +261,7 @@ const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, Continuo
   );
 
   return (
-    <div className="continuous-scroll-viewer" ref={containerRef}>
+    <div className="continuous-scroll-viewer" ref={containerRef} tabIndex={-1}>
       {pages.map((page, idx) => (
         <div
           key={page.id}

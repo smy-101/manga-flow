@@ -3,7 +3,7 @@ import { useSettingsStore } from "../stores/settingsStore";
 
 describe("useSettingsStore", () => {
   beforeEach(() => {
-    useSettingsStore.setState({ libraryPath: "", defaultReadingMode: "single" });
+    useSettingsStore.setState({ libraryPath: "", defaultReadingMode: "single", defaultReadingDirection: "ltr" });
   });
 
   it("has empty string as default libraryPath", () => {
@@ -35,6 +35,23 @@ describe("useSettingsStore", () => {
       useSettingsStore.getState().setDefaultReadingMode("continuous");
       useSettingsStore.getState().setDefaultReadingMode("single");
       expect(useSettingsStore.getState().defaultReadingMode).toBe("single");
+    });
+  });
+
+  describe("defaultReadingDirection", () => {
+    it('defaults to "ltr"', () => {
+      expect(useSettingsStore.getState().defaultReadingDirection).toBe("ltr");
+    });
+
+    it("updates via setDefaultReadingDirection", () => {
+      useSettingsStore.getState().setDefaultReadingDirection("rtl");
+      expect(useSettingsStore.getState().defaultReadingDirection).toBe("rtl");
+    });
+
+    it("can switch back to ltr", () => {
+      useSettingsStore.getState().setDefaultReadingDirection("rtl");
+      useSettingsStore.getState().setDefaultReadingDirection("ltr");
+      expect(useSettingsStore.getState().defaultReadingDirection).toBe("ltr");
     });
   });
 });

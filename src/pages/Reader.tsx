@@ -1,10 +1,12 @@
 import { useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useReaderStore } from "../stores/readerStore";
-import type { ReadingMode } from "../stores/readerStore";
+import type { ReadingMode, ReadingDirection } from "../stores/readerStore";
 import { useSettingsStore } from "../stores/settingsStore";
 import { pageRepo } from "../repos/pageRepo";
 import { progressRepo } from "../repos/progressRepo";
+import { bookPreferencesRepo } from "../repos/bookPreferencesRepo";
+import { resolvePreferences } from "../utils/resolvePreferences";
 import { useImmersiveMode } from "../hooks/useImmersiveMode";
 import ReaderToolbar from "../components/ReaderToolbar";
 import SinglePageViewer from "../components/SinglePageViewer";
@@ -24,10 +26,12 @@ export default function Reader() {
     pages,
     currentIndex,
     readingMode,
+    readingDirection,
     setBookId,
     setPages,
     setCurrentIndex,
     setReadingMode,
+    setReadingDirection,
     nextPage,
     prevPage,
   } = useReaderStore();
@@ -39,7 +43,10 @@ export default function Reader() {
   useEffect(() => {
     if (!bookIdNum) return;
     setBookId(bookIdNum);
-    setReadingMode(useSettingsStore.getState().defaultReadingMode);
+
+    const globalDefaults = useSettingsStore.getState();
+    setReadingMode(globalDefaults.defaultReadingMode);
+    setReadingDirection(globalDefaults.defaultReadingDirection);
 
     async function load() {
       const allPages = await pageRepo.getByBookId(bookIdNum);
@@ -49,9 +56,17 @@ export default function Reader() {
       if (progress && progress.page_index > 0) {
         setCurrentIndex(progress.page_index - 1);
       }
+
+      const bookPrefs = await bookPreferencesRepo.get(bookIdNum);
+      const resolved = resolvePreferences(
+        { defaultReadingMode: globalDefaults.defaultReadingMode, defaultReadingDirection: globalDefaults.defaultReadingDirection },
+        bookPrefs,
+      );
+      setReadingMode(resolved.readingMode);
+      setReadingDirection(resolved.readingDirection);
     }
     load();
-  }, [bookIdNum, setBookId, setPages, setCurrentIndex, setReadingMode]);
+  }, [bookIdNum, setBookId, setPages, setCurrentIndex, setReadingMode, setReadingDirection]);
 
   const saveProgress = useCallback(async () => {
     if (!bookIdNum || pages.length === 0) return;
@@ -75,30 +90,24 @@ export default function Reader() {
     };
   }, [currentIndex, pages.length, saveProgress]);
 
+  const isRtl = readingDirection === "rtl";
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         navigate("/");
         return;
       }
-      if (readingMode === "single") {
-        if (e.key === "ArrowRight") {
-          nextPage();
-        } else if (e.key === "ArrowLeft") {
-          prevPage();
-        }
-      } else {
-        const SCROLL_STEP = 300;
-        if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-          e.preventDefault();
-          scrollViewerRef.current?.scrollBy(SCROLL_STEP);
-        } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-          e.preventDefault();
-          scrollViewerRef.current?.scrollBy(-SCROLL_STEP);
-        }
+      if (readingMode !== "single") return;
+      const goNext = isRtl ? "ArrowLeft" : "ArrowRight";
+      const goPrev = isRtl ? "ArrowRight" : "ArrowLeft";
+      if (e.key === goNext) {
+        nextPage();
+      } else if (e.key === goPrev) {
+        prevPage();
       }
     },
-    [readingMode, nextPage, prevPage, navigate],
+    [readingMode, isRtl, nextPage, prevPage, navigate],
   );
 
   useEffect(() => {
@@ -109,8 +118,21 @@ export default function Reader() {
   const handleModeChange = useCallback(
     (mode: ReadingMode) => {
       setReadingMode(mode);
+      if (bookIdNum) {
+        bookPreferencesRepo.upsert(bookIdNum, { reading_mode: mode });
+      }
     },
-    [setReadingMode],
+    [setReadingMode, bookIdNum],
+  );
+
+  const handleDirectionChange = useCallback(
+    (direction: ReadingDirection) => {
+      setReadingDirection(direction);
+      if (bookIdNum) {
+        bookPreferencesRepo.upsert(bookIdNum, { reading_direction: direction });
+      }
+    },
+    [setReadingDirection, bookIdNum],
   );
 
   const handleVisiblePageChange = useCallback(
@@ -137,13 +159,16 @@ export default function Reader() {
         pageIndex={currentIndex}
         totalPages={totalPages}
         readingMode={readingMode}
+        readingDirection={readingDirection}
         onBack={() => navigate("/")}
         onModeChange={handleModeChange}
+        onDirectionChange={handleDirectionChange}
       />
       {readingMode === "single" ? (
         <SinglePageViewer
           pages={pages}
           currentIndex={currentIndex}
+          readingDirection={readingDirection}
           onNext={nextPage}
           onPrev={prevPage}
         />
@@ -153,6 +178,7 @@ export default function Reader() {
           key={bookIdNum}
           pages={pages}
           currentIndex={currentIndex}
+          readingDirection={readingDirection}
           onVisiblePageChange={handleVisiblePageChange}
         />
       )}

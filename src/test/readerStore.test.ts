@@ -15,6 +15,7 @@ describe("useReaderStore", () => {
       pages: [],
       currentIndex: 0,
       readingMode: "single",
+      readingDirection: "ltr",
     });
   });
 
@@ -75,6 +76,17 @@ describe("useReaderStore", () => {
     useReaderStore.getState().setReadingMode("single");
     expect(useReaderStore.getState().readingMode).toBe("single");
   });
+
+  it('defaults readingDirection to "ltr"', () => {
+    expect(useReaderStore.getState().readingDirection).toBe("ltr");
+  });
+
+  it("switches readingDirection via setReadingDirection", () => {
+    useReaderStore.getState().setReadingDirection("rtl");
+    expect(useReaderStore.getState().readingDirection).toBe("rtl");
+    useReaderStore.getState().setReadingDirection("ltr");
+    expect(useReaderStore.getState().readingDirection).toBe("ltr");
+  });
 });
 
 describe("getPreloadRange", () => {
@@ -104,5 +116,12 @@ describe("getPreloadRange", () => {
 
   it("handles window larger than available pages", () => {
     expect(getPreloadRange(2, 4, 5)).toEqual([0, 1, 3]);
+  });
+
+  it("returns symmetric range regardless of reading direction (RTL does not affect preload)", () => {
+    // Preload range is symmetric ±windowSize and does not change with RTL
+    expect(getPreloadRange(5, 10)).toEqual([3, 4, 6, 7]);
+    expect(getPreloadRange(0, 10)).toEqual([1, 2]);
+    expect(getPreloadRange(9, 10)).toEqual([7, 8]);
   });
 });

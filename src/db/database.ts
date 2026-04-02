@@ -1,4 +1,5 @@
 import Database from "@tauri-apps/plugin-sql";
+import { runMigrations } from "./migrate";
 
 const CREATE_TABLES_SQL = `
 CREATE TABLE IF NOT EXISTS books (
@@ -47,6 +48,7 @@ export async function getDb(): Promise<Database> {
     await dbInstance.execute("PRAGMA journal_mode = WAL");
     await dbInstance.execute("PRAGMA busy_timeout = 5000");
     await dbInstance.execute(CREATE_TABLES_SQL);
+    await runMigrations(dbInstance);
   }
   return dbInstance;
 }

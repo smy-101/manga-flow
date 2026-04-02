@@ -1,10 +1,4 @@
-# Reader Preferences
-
-## Purpose
-
-阅读偏好设置：用户可在设置页面预配置默认阅读模式（单页/连续滚动），偏好持久化至 localStorage，阅读器启动时读取初始化。阅读器支持沉浸模式，工具栏和页码滑条在无操作时自动隐藏。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 默认阅读模式配置
 系统 SHALL 在设置页面提供阅读偏好区块，允许用户选择默认阅读模式（单页 / 连续滚动）。该偏好通过 `settingsStore` 持久化到 localStorage。
@@ -66,6 +60,8 @@
 #### Scenario: 设置面板打开时不触发 UI 隐藏
 - **WHEN** 用户在阅读器中打开了设置面板
 - **THEN** 工具栏保持可见，不触发自动隐藏计时
+
+## ADDED Requirements
 
 ### Requirement: 默认阅读方向配置
 系统 SHALL 在设置页面提供默认阅读方向选项（从左到右 / 从右到左），通过 `settingsStore` 持久化到 localStorage。默认值为 `"ltr"`。

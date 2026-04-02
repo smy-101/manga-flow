@@ -13,7 +13,7 @@ export function useImmersiveMode() {
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
-      const isOverUI = !!target.closest(".reader-topbar, .page-slider");
+      const isOverUI = !!target.closest(".reader-topbar, .page-slider, .reader-settings-panel");
 
       const windowHeight = window.innerHeight;
       const nearEdge =
