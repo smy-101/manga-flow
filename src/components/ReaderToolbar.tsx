@@ -2,6 +2,7 @@ import type { ReadingMode } from "../stores/readerStore";
 import "./ReaderToolbar.css";
 
 interface ReaderToolbarProps {
+  visible: boolean;
   pageIndex: number;
   totalPages: number;
   readingMode: ReadingMode;
@@ -10,6 +11,7 @@ interface ReaderToolbarProps {
 }
 
 export default function ReaderToolbar({
+  visible,
   pageIndex,
   totalPages,
   readingMode,
@@ -21,7 +23,7 @@ export default function ReaderToolbar({
   };
 
   return (
-    <div className="reader-topbar">
+    <div className={`reader-topbar${visible ? "" : " reader-topbar--hidden"}`}>
       <button className="reader-back" onClick={onBack} title="返回书库">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />

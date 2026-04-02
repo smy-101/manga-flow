@@ -2,8 +2,10 @@ import { useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useReaderStore } from "../stores/readerStore";
 import type { ReadingMode } from "../stores/readerStore";
+import { useSettingsStore } from "../stores/settingsStore";
 import { pageRepo } from "../repos/pageRepo";
 import { progressRepo } from "../repos/progressRepo";
+import { useImmersiveMode } from "../hooks/useImmersiveMode";
 import ReaderToolbar from "../components/ReaderToolbar";
 import SinglePageViewer from "../components/SinglePageViewer";
 import ContinuousScrollViewer from "../components/ContinuousScrollViewer";
@@ -32,10 +34,12 @@ export default function Reader() {
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollViewerRef = useRef<ContinuousScrollViewerHandle>(null);
+  const { showUI, handleMouseMove } = useImmersiveMode();
 
   useEffect(() => {
     if (!bookIdNum) return;
     setBookId(bookIdNum);
+    setReadingMode(useSettingsStore.getState().defaultReadingMode);
 
     async function load() {
       const allPages = await pageRepo.getByBookId(bookIdNum);
@@ -47,7 +51,7 @@ export default function Reader() {
       }
     }
     load();
-  }, [bookIdNum, setBookId, setPages, setCurrentIndex]);
+  }, [bookIdNum, setBookId, setPages, setCurrentIndex, setReadingMode]);
 
   const saveProgress = useCallback(async () => {
     if (!bookIdNum || pages.length === 0) return;
@@ -127,8 +131,9 @@ export default function Reader() {
   }
 
   return (
-    <div className="reader">
+    <div className="reader" onMouseMove={handleMouseMove}>
       <ReaderToolbar
+        visible={showUI}
         pageIndex={currentIndex}
         totalPages={totalPages}
         readingMode={readingMode}
@@ -152,6 +157,7 @@ export default function Reader() {
         />
       )}
       <PageSlider
+        visible={showUI}
         currentIndex={currentIndex}
         totalPages={totalPages}
         onChange={setCurrentIndex}

@@ -39,7 +39,7 @@ export const useReaderStore = create<ReaderState>()((set) => ({
   pages: [],
   currentIndex: 0,
   readingMode: "single",
-  setBookId: (id) => set({ bookId: id, currentIndex: 0 }),
+  setBookId: (id) => set({ bookId: id, currentIndex: 0, pages: [] }),
   setPages: (pages) => set({ pages }),
   setCurrentIndex: (index) => set({ currentIndex: index }),
   setReadingMode: (mode) => set({ readingMode: mode }),

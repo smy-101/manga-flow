@@ -8,6 +8,8 @@ import "./Settings.css";
 export default function Settings() {
   const libraryPath = useSettingsStore((s) => s.libraryPath);
   const setLibraryPath = useSettingsStore((s) => s.setLibraryPath);
+  const defaultReadingMode = useSettingsStore((s) => s.defaultReadingMode);
+  const setDefaultReadingMode = useSettingsStore((s) => s.setDefaultReadingMode);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +47,26 @@ export default function Settings() {
       {error && (
         <div className="settings-error">{error}</div>
       )}
+
+      <div className="settings-card">
+        <div className="settings-field">
+          <label className="settings-label">默认阅读模式</label>
+          <div className="settings-mode-options">
+            <button
+              className={`settings-mode-btn ${defaultReadingMode === "single" ? "settings-mode-btn--active" : ""}`}
+              onClick={() => setDefaultReadingMode("single")}
+            >
+              单页模式
+            </button>
+            <button
+              className={`settings-mode-btn ${defaultReadingMode === "continuous" ? "settings-mode-btn--active" : ""}`}
+              onClick={() => setDefaultReadingMode("continuous")}
+            >
+              连续滚动
+            </button>
+          </div>
+        </div>
+      </div>
 
       <ConfirmDialog
         open={showConfirm}

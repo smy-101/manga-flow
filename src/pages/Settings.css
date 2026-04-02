@@ -9,6 +9,10 @@
   margin-bottom: 20px;
 }
 
+.settings-card + .settings-card {
+  margin-top: 16px;
+}
+
 .settings-card {
   background: var(--card-bg);
   border-radius: var(--radius);
@@ -54,4 +58,31 @@
   color: var(--accent);
   border-radius: var(--radius);
   font-size: 13px;
+}
+
+.settings-mode-options {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-mode-btn {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--main-bg);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.settings-mode-btn:hover {
+  background: var(--card-bg);
+}
+
+.settings-mode-btn--active {
+  border-color: var(--accent);
+  background: var(--card-bg);
 }

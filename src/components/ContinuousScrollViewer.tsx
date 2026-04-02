@@ -224,11 +224,11 @@ const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, Continuo
   const getPlaceholderStyle = useCallback(
     (idx: number): React.CSSProperties => {
       const cached = heightsRef.current.get(idx);
-      if (cached) return { height: cached };
+      if (cached) return { minHeight: cached };
       const measured = Array.from(heightsRef.current.values());
       if (measured.length > 0) {
         const avg = measured.reduce((a, b) => a + b, 0) / measured.length;
-        return { height: avg };
+        return { minHeight: avg };
       }
       return {};
     },
@@ -244,6 +244,7 @@ const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, Continuo
           ref={setPageRef(idx)}
           data-page-index={idx}
           data-testid="scroll-page"
+          style={getPlaceholderStyle(idx)}
         >
           {idx >= renderRange[0] && idx <= renderRange[1] ? (
             <img
@@ -253,10 +254,7 @@ const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, Continuo
               onLoad={() => handleImageLoad(idx)}
             />
           ) : (
-            <div
-              className="continuous-scroll-page__placeholder"
-              style={getPlaceholderStyle(idx)}
-            />
+            <div className="continuous-scroll-page__placeholder" />
           )}
         </div>
       ))}
