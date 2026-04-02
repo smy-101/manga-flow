@@ -109,12 +109,13 @@ export default function Library() {
   const handleImportFile = async () => {
     const selected = await open({
       multiple: false,
-      filters: [{ name: "漫画文件", extensions: ["zip", "cbz"] }],
+      filters: [{ name: "漫画文件", extensions: ["zip", "cbz", "epub"] }],
       title: "选择漫画文件",
     });
     if (!selected) return;
     const ext = (selected as string).split(".").pop()?.toLowerCase();
-    await doImport(selected as string, ext === "cbz" ? "cbz" : "zip");
+    const sourceType = ext === "cbz" ? "cbz" : ext === "epub" ? "epub" : "zip";
+    await doImport(selected as string, sourceType);
   };
 
   const handleDelete = async () => {

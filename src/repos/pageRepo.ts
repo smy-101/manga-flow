@@ -23,18 +23,11 @@ export const pageRepo = {
 
   async createBatch(chapterId: number, pages: { pageIndex: number; fileName: string; filePath: string }[]): Promise<void> {
     const db = await getDb();
-    await db.execute("BEGIN");
-    try {
-      for (const page of pages) {
-        await db.execute(
-          "INSERT INTO pages (chapter_id, page_index, file_name, file_path) VALUES ($1, $2, $3, $4)",
-          [chapterId, page.pageIndex, page.fileName, page.filePath],
-        );
-      }
-      await db.execute("COMMIT");
-    } catch (e) {
-      await db.execute("ROLLBACK");
-      throw e;
+    for (const page of pages) {
+      await db.execute(
+        "INSERT INTO pages (chapter_id, page_index, file_name, file_path) VALUES ($1, $2, $3, $4)",
+        [chapterId, page.pageIndex, page.fileName, page.filePath],
+      );
     }
   },
 };

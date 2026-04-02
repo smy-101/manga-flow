@@ -44,6 +44,8 @@ export async function getDb(): Promise<Database> {
   if (!dbInstance) {
     dbInstance = await Database.load("sqlite:manga-flow.db");
     await dbInstance.execute("PRAGMA foreign_keys = ON");
+    await dbInstance.execute("PRAGMA journal_mode = WAL");
+    await dbInstance.execute("PRAGMA busy_timeout = 5000");
     await dbInstance.execute(CREATE_TABLES_SQL);
   }
   return dbInstance;

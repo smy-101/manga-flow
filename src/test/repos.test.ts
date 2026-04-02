@@ -163,7 +163,7 @@ describe("chapterRepo", () => {
 });
 
 describe("pageRepo", () => {
-  it("createBatch wraps inserts in BEGIN/COMMIT transaction", async () => {
+  it("createBatch inserts each page individually", async () => {
     mockExecute.mockResolvedValue({ lastInsertId: 1 });
 
     const { pageRepo } = await import("../repos/pageRepo");
@@ -172,12 +172,6 @@ describe("pageRepo", () => {
       { pageIndex: 2, fileName: "002.jpg", filePath: "/a/002.jpg" },
     ]);
 
-    // First call should be BEGIN
-    expect(mockExecute).toHaveBeenNthCalledWith(1, "BEGIN");
-    // Last call should be COMMIT
-    const calls = mockExecute.mock.calls;
-    expect(calls[calls.length - 1][0]).toBe("COMMIT");
-    // Insert calls in between
     expect(mockExecute).toHaveBeenCalledWith(
       "INSERT INTO pages (chapter_id, page_index, file_name, file_path) VALUES ($1, $2, $3, $4)",
       [10, 1, "001.jpg", "/a/001.jpg"],
@@ -188,10 +182,9 @@ describe("pageRepo", () => {
     );
   });
 
-  it("createBatch rolls back on insert error", async () => {
+  it("createBatch propagates insert errors", async () => {
     mockExecute
-      .mockResolvedValueOnce({}) // BEGIN
-      .mockResolvedValueOnce({ lastInsertId: 1 }) // first insert
+      .mockResolvedValueOnce({ lastInsertId: 1 }) // first insert succeeds
       .mockRejectedValueOnce(new Error("DB error")); // second insert fails
 
     const { pageRepo } = await import("../repos/pageRepo");
@@ -201,8 +194,6 @@ describe("pageRepo", () => {
         { pageIndex: 2, fileName: "002.jpg", filePath: "/b" },
       ]),
     ).rejects.toThrow("DB error");
-
-    expect(mockExecute).toHaveBeenCalledWith("ROLLBACK");
   });
 
   it("getByChapterId queries pages ordered by page_index", async () => {

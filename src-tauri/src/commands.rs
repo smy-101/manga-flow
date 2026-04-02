@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 use tauri::Emitter;
 
-use crate::scanner::{detect_source_type, find_first_image, scan_folder_chapters, scan_zip_chapters_from_archive};
+use crate::scanner::{detect_source_type, find_first_image, scan_folder_chapters, scan_zip_chapters_from_archive, scan_epub_chapters_from_doc};
 
 #[derive(Debug, Serialize)]
 pub struct ImportResult {
@@ -64,7 +64,7 @@ pub fn perform_import(
             .ok_or_else(|| format!("不支持的文件格式: {}", source_path.display()))?
     } else {
         match source_type {
-            "folder" | "zip" | "cbz" => source_type,
+            "folder" | "zip" | "cbz" | "epub" => source_type,
             _ => detect_source_type(source_path)
                 .ok_or_else(|| format!("不支持的文件格式: {}", source_path.display()))?,
         }
@@ -75,12 +75,17 @@ pub fn perform_import(
     let (page_count, chapters) = match resolved_type {
         "folder" => import_from_folder(source_path, &pages_dir, &mut on_progress)?,
         "zip" | "cbz" => import_from_zip(source_path, &pages_dir, &mut on_progress)?,
+        "epub" => import_from_epub(source_path, &pages_dir, &mut on_progress)?,
         _ => return Err(format!("Unsupported source type: {}", source_type)),
     };
 
     if page_count == 0 {
         fs::remove_dir_all(&book_dir).ok();
-        return Err("该文件夹不包含可识别的图片文件".to_string());
+        let msg = match resolved_type {
+            "epub" => "该 epub 文件不包含可识别的图片页面",
+            _ => "该文件夹不包含可识别的图片文件",
+        };
+        return Err(msg.to_string());
     }
 
     // Write meta.json
@@ -240,9 +245,53 @@ fn import_from_zip(source: &Path, pages_dir: &Path, on_progress: &mut impl FnMut
     Ok((total_count, chapters))
 }
 
+fn import_from_epub(source: &Path, pages_dir: &Path, on_progress: &mut impl FnMut(usize, usize)) -> Result<(usize, Vec<ChapterInfo>), String> {
+    let mut doc = epub::doc::EpubDoc::new(source)
+        .map_err(|e| format!("该文件无法解析，可能已损坏: {}", e))?;
+    let chapter_scans = scan_epub_chapters_from_doc(&mut doc)?;
+
+    let total_images: usize = chapter_scans.iter().map(|s| s.image_names.len()).sum();
+    on_progress(0, total_images);
+
+    let mut chapters = Vec::new();
+    let mut total_count = 0;
+    let mut global_index = 0usize;
+
+    for (order, scan) in chapter_scans.iter().enumerate() {
+        let mut page_files = Vec::new();
+        for entry_name in &scan.image_names {
+            global_index += 1;
+
+            let image_data = doc.get_resource_by_path(entry_name)
+                .ok_or_else(|| format!("无法从 epub 中提取图片: {}", entry_name))?;
+
+            let ext = Path::new(entry_name)
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("png");
+            let dest_name = format!("{:03}.{}", global_index, ext);
+
+            fs::write(pages_dir.join(&dest_name), &image_data)
+                .map_err(|e| format!("Failed to write image: {}", e))?;
+
+            page_files.push(dest_name);
+            on_progress(global_index, total_images);
+        }
+        total_count += page_files.len();
+        chapters.push(ChapterInfo {
+            title: scan.title.clone(),
+            chapter_order: order + 1,
+            page_files,
+        });
+    }
+
+    Ok((total_count, chapters))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::{create_test_epub, create_test_epub_with_toc, create_test_zip};
     use std::io::Write;
     use std::path::PathBuf;
 
@@ -258,17 +307,6 @@ mod tests {
         let png_header: [u8; 8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
         let mut f = fs::File::create(path).unwrap();
         f.write_all(&png_header).unwrap();
-    }
-
-    fn create_test_zip(zip_path: &Path, files: &[(&str, &[u8])]) {
-        let file = fs::File::create(zip_path).unwrap();
-        let mut zip = zip::ZipWriter::new(file);
-        let options = zip::write::SimpleFileOptions::default();
-        for (name, data) in files {
-            zip.start_file(name, options).unwrap();
-            zip.write_all(data).unwrap();
-        }
-        zip.finish().unwrap();
     }
 
     #[test]
@@ -504,4 +542,53 @@ mod tests {
         let _ = fs::remove_dir_all(&src_dir);
         let _ = fs::remove_dir_all(&lib_dir);
     }
+
+    #[test]
+    fn test_import_from_epub_extracts_images() {
+        let lib_dir = temp_dir("manga_flow_test_import_epub");
+
+        let epub_path = lib_dir.join("test.epub");
+        create_test_epub(&epub_path, &[
+            ("page1.xhtml", "page1.jpg"),
+            ("page2.xhtml", "page2.png"),
+        ]);
+
+        let result = perform_import(&epub_path, &lib_dir, "epub", |_, _| {});
+        assert!(result.is_ok(), "epub import failed: {:?}", result.err());
+        let info = result.unwrap();
+        assert_eq!(info.page_count, 2);
+        assert_eq!(info.chapters.len(), 1);
+        assert!(info.cover_path.contains("001"));
+
+        // Verify meta.json records epub source type
+        let meta_path = lib_dir.join("books").join(&info.book_id).join("meta.json");
+        let meta: serde_json::Value = serde_json::from_str(&fs::read_to_string(&meta_path).unwrap()).unwrap();
+        assert_eq!(meta["source_type"], "epub");
+
+        let _ = fs::remove_dir_all(&lib_dir);
+    }
+
+    #[test]
+    fn test_import_from_epub_with_toc() {
+        let lib_dir = temp_dir("manga_flow_test_import_epub_toc");
+
+        let epub_path = lib_dir.join("test_toc.epub");
+        create_test_epub_with_toc(&epub_path, &[
+            ("第一章", 2),
+            ("第二章", 1),
+        ]);
+
+        let result = perform_import(&epub_path, &lib_dir, "epub", |_, _| {});
+        assert!(result.is_ok(), "epub import with toc failed: {:?}", result.err());
+        let info = result.unwrap();
+        assert_eq!(info.page_count, 3);
+        assert_eq!(info.chapters.len(), 2);
+        assert_eq!(info.chapters[0].title, "第一章");
+        assert_eq!(info.chapters[0].page_files.len(), 2);
+        assert_eq!(info.chapters[1].title, "第二章");
+        assert_eq!(info.chapters[1].page_files.len(), 1);
+
+        let _ = fs::remove_dir_all(&lib_dir);
+    }
+
 }

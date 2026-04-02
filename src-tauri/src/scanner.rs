@@ -233,6 +233,155 @@ pub fn scan_zip_chapters_from_archive(archive: &mut zip::ZipArchive<std::fs::Fil
     Ok(chapters)
 }
 
+/// Scan an already-opened epub doc for manga chapters.
+/// Parses spine entries to find images, uses TOC for chapter grouping.
+pub fn scan_epub_chapters_from_doc(doc: &mut epub::doc::EpubDoc<std::io::BufReader<std::fs::File>>) -> Result<Vec<ChapterScan>, String> {
+    let num_pages = doc.get_num_chapters();
+
+    // Collect images in spine order: (spine_index, image_archive_path)
+    let mut spine_images: Vec<(usize, String)> = Vec::new();
+
+    for spine_idx in 0..num_pages {
+        doc.set_current_chapter(spine_idx);
+
+        let current_path = match doc.get_current_path() {
+            Some(p) => p,
+            None => continue,
+        };
+        let base = current_path.parent().unwrap_or(Path::new(""));
+
+        if let Some((xhtml, _mime)) = doc.get_current_str() {
+            for img_src in parse_img_sources(&xhtml) {
+                let resolved = base.join(&img_src);
+                let full_path = normalize_archive_path(&resolved.to_string_lossy());
+                // Only include actual image files (skip SVGs for now)
+                if is_image_file(Path::new(&full_path)) {
+                    spine_images.push((spine_idx, full_path));
+                }
+            }
+        }
+    }
+
+    if spine_images.is_empty() {
+        return Err("该 epub 文件不包含可识别的图片页面".to_string());
+    }
+
+    // Build chapters from TOC
+    let toc = doc.toc.clone();
+    if toc.is_empty() {
+        let images: Vec<String> = spine_images.into_iter().map(|(_, p)| p).collect();
+        return Ok(vec![ChapterScan {
+            title: "默认章节".to_string(),
+            image_paths: Vec::new(),
+            image_names: images,
+        }]);
+    }
+
+    // Map TOC entries to spine indices
+    let mut chapter_boundaries: Vec<(String, usize)> = Vec::new();
+    for nav in &toc {
+        if let Some(ch_idx) = doc.resource_uri_to_chapter(&nav.content) {
+            chapter_boundaries.push((nav.label.clone(), ch_idx));
+        }
+    }
+    chapter_boundaries.sort_by_key(|(_, idx)| *idx);
+    chapter_boundaries.dedup_by_key(|(_, idx)| *idx);
+
+    if chapter_boundaries.is_empty() {
+        let images: Vec<String> = spine_images.into_iter().map(|(_, p)| p).collect();
+        return Ok(vec![ChapterScan {
+            title: "默认章节".to_string(),
+            image_paths: Vec::new(),
+            image_names: images,
+        }]);
+    }
+
+    // Group images by chapter
+    let mut chapters = Vec::new();
+
+    // Handle images before first TOC entry
+    let first_idx = chapter_boundaries[0].1;
+    let pre_images: Vec<String> = spine_images.iter()
+        .filter(|(idx, _)| *idx < first_idx)
+        .map(|(_, p)| p.clone())
+        .collect();
+    if !pre_images.is_empty() {
+        chapters.push(ChapterScan {
+            title: "默认章节".to_string(),
+            image_paths: Vec::new(),
+            image_names: pre_images,
+        });
+    }
+
+    for (ch_i, (title, start_idx)) in chapter_boundaries.iter().map(|(t, i)| (t.clone(), *i)).enumerate() {
+        let end_idx = if ch_i + 1 < chapter_boundaries.len() {
+            chapter_boundaries[ch_i + 1].1
+        } else {
+            num_pages
+        };
+
+        let images: Vec<String> = spine_images.iter()
+            .filter(|(spine_idx, _)| *spine_idx >= start_idx && *spine_idx < end_idx)
+            .map(|(_, p)| p.clone())
+            .collect();
+
+        if !images.is_empty() {
+            chapters.push(ChapterScan {
+                title: title.clone(),
+                image_paths: Vec::new(),
+                image_names: images,
+            });
+        }
+    }
+
+    // Fallback: if no images matched any chapter, put all in default
+    if chapters.is_empty() {
+        let images: Vec<String> = spine_images.into_iter().map(|(_, p)| p).collect();
+        chapters.push(ChapterScan {
+            title: "默认章节".to_string(),
+            image_paths: Vec::new(),
+            image_names: images,
+        });
+    }
+
+    Ok(chapters)
+}
+
+/// Test-only convenience: opens an epub file and delegates to `scan_epub_chapters_from_doc`.
+/// Production code calls `scan_epub_chapters_from_doc` directly to reuse the opened EpubDoc.
+#[cfg(test)]
+pub fn scan_epub_chapters(epub_path: &Path) -> Result<Vec<ChapterScan>, String> {
+    if !epub_path.exists() {
+        return Err(format!("File does not exist: {}", epub_path.display()));
+    }
+
+    let mut doc = epub::doc::EpubDoc::new(epub_path)
+        .map_err(|e| format!("该文件无法解析，可能已损坏: {}", e))?;
+
+    scan_epub_chapters_from_doc(&mut doc)
+}
+
+/// Parse <img src="..."> attributes from XHTML content.
+fn parse_img_sources(xhtml: &str) -> Vec<String> {
+    let re = regex::Regex::new(r#"<img[^>]+src\s*=\s*["']([^"']+)["']"#).unwrap();
+    re.captures_iter(xhtml)
+        .filter_map(|cap| cap.get(1).map(|m| m.as_str().to_string()))
+        .collect()
+}
+
+/// Normalize a ZIP/epub archive path by resolving `.` and `..` components.
+fn normalize_archive_path(path: &str) -> String {
+    let mut result: Vec<&str> = Vec::new();
+    for part in path.split(&['/', '\\']) {
+        match part {
+            "" | "." => {}
+            ".." => { result.pop(); }
+            _ => result.push(part),
+        }
+    }
+    result.join("/")
+}
+
 /// Convenience wrapper: open a zip file and scan for chapters.
 #[cfg(test)]
 pub fn scan_zip_chapters(zip_path: &Path) -> Result<Vec<ChapterScan>, String> {
@@ -256,6 +405,7 @@ pub fn detect_source_type(path: &Path) -> Option<&'static str> {
     match path.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase()) {
         Some(ext) if ext == "zip" => Some("zip"),
         Some(ext) if ext == "cbz" => Some("cbz"),
+        Some(ext) if ext == "epub" => Some("epub"),
         _ => None,
     }
 }
@@ -283,6 +433,7 @@ pub fn find_first_image(dir: &Path) -> Result<PathBuf, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::{create_test_epub, create_test_epub_with_toc, create_test_zip};
     use std::fs;
     use std::io::Write;
 
@@ -369,17 +520,6 @@ mod tests {
         assert_eq!(chapters[0].image_paths.len(), 2);
 
         let _ = fs::remove_dir_all(&dir);
-    }
-
-    fn create_test_zip(zip_path: &Path, files: &[(&str, &[u8])]) {
-        let file = fs::File::create(zip_path).unwrap();
-        let mut zip = zip::ZipWriter::new(file);
-        let options = zip::write::SimpleFileOptions::default();
-        for (name, data) in files {
-            zip.start_file(name, options).unwrap();
-            zip.write_all(data).unwrap();
-        }
-        zip.finish().unwrap();
     }
 
     #[test]
@@ -475,6 +615,12 @@ mod tests {
     }
 
     #[test]
+    fn test_detect_source_type_epub() {
+        assert_eq!(detect_source_type(Path::new("manga.epub")), Some("epub"));
+        assert_eq!(detect_source_type(Path::new("manga.EPUB")), Some("epub"));
+    }
+
+    #[test]
     fn test_find_first_image() {
         let dir = std::env::temp_dir().join("manga_flow_test_find_first");
         let _ = fs::remove_dir_all(&dir);
@@ -502,5 +648,72 @@ mod tests {
         let result = find_first_image(&dir);
         assert!(result.is_err());
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_scan_epub_chapters_single() {
+        let dir = std::env::temp_dir().join("manga_flow_test_epub_single");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+
+        let epub_path = dir.join("test.epub");
+        create_test_epub(&epub_path, &[
+            ("page1.xhtml", "page1.jpg"),
+            ("page2.xhtml", "page2.png"),
+        ]);
+
+        let chapters = scan_epub_chapters(&epub_path).unwrap();
+        assert_eq!(chapters.len(), 1);
+        assert_eq!(chapters[0].title, "默认章节");
+        assert_eq!(chapters[0].image_names.len(), 2);
+        assert!(chapters[0].image_names[0].contains("page1.jpg"));
+        assert!(chapters[0].image_names[1].contains("page2.png"));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_scan_epub_chapters_with_toc() {
+        let dir = std::env::temp_dir().join("manga_flow_test_epub_toc");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+
+        let epub_path = dir.join("test_toc.epub");
+        create_test_epub_with_toc(&epub_path, &[
+            ("第一章", 2),  // 2 pages
+            ("第二章", 1),  // 1 page
+        ]);
+
+        let chapters = scan_epub_chapters(&epub_path).unwrap();
+        assert_eq!(chapters.len(), 2);
+        assert_eq!(chapters[0].title, "第一章");
+        assert_eq!(chapters[0].image_names.len(), 2);
+        assert_eq!(chapters[1].title, "第二章");
+        assert_eq!(chapters[1].image_names.len(), 1);
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_scan_epub_chapters_corrupted() {
+        let dir = std::env::temp_dir().join("manga_flow_test_epub_corrupt");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+
+        let epub_path = dir.join("broken.epub");
+        fs::write(&epub_path, b"this is not a valid epub file").unwrap();
+
+        let result = scan_epub_chapters(&epub_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("该文件无法解析，可能已损坏"));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_parse_img_sources() {
+        let xhtml = r#"<html><body><img src="image1.jpg"/><p>text</p><img src="image2.png" alt="test"/></body></html>"#;
+        let sources = parse_img_sources(xhtml);
+        assert_eq!(sources, vec!["image1.jpg", "image2.png"]);
     }
 }
