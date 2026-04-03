@@ -38,10 +38,23 @@
 }
 
 .reader-page-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   color: rgba(255, 255, 255, 0.8);
   font-size: 13px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+}
+
+.reader-page-nav {
+  width: 28px;
+  height: 28px;
+}
+
+.reader-page-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .reader-topbar-btn {

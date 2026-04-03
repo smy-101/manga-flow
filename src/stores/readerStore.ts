@@ -20,6 +20,10 @@ export function getPreloadRange(
   return indices;
 }
 
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 5;
+const ZOOM_STEP = 0.25;
+
 export type ReadingMode = "single" | "continuous" | "spread";
 export type ReadingDirection = "ltr" | "rtl";
 export type FitMode = "best-fit" | "fit-width" | "fit-height" | "original";
@@ -31,6 +35,7 @@ interface ReaderState {
   readingMode: ReadingMode;
   readingDirection: ReadingDirection;
   fitMode: FitMode;
+  zoomLevel: number;
   setBookId: (id: number) => void;
   setPages: (pages: Page[]) => void;
   setCurrentIndex: (index: number) => void;
@@ -41,6 +46,10 @@ interface ReaderState {
   prevPage: () => void;
   nextSpread: () => void;
   prevSpread: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
+  setZoom: (level: number) => void;
 }
 
 export const useReaderStore = create<ReaderState>()((set) => ({
@@ -50,7 +59,8 @@ export const useReaderStore = create<ReaderState>()((set) => ({
   readingMode: "single",
   readingDirection: "ltr",
   fitMode: "best-fit",
-  setBookId: (id) => set({ bookId: id, currentIndex: 0, pages: [] }),
+  zoomLevel: 1,
+  setBookId: (id) => set({ bookId: id, currentIndex: 0, pages: [], zoomLevel: 1 }),
   setPages: (pages) => set({ pages }),
   setCurrentIndex: (index) => set({ currentIndex: index }),
   setReadingMode: (mode) => set({ readingMode: mode }),
@@ -83,4 +93,15 @@ export const useReaderStore = create<ReaderState>()((set) => ({
       const prev = normalizeToSpreadStart(currentIndex) - 2;
       return { currentIndex: Math.max(prev, 0) };
     }),
+  zoomIn: () =>
+    set((s) => ({
+      zoomLevel: Math.min(s.zoomLevel + ZOOM_STEP, ZOOM_MAX),
+    })),
+  zoomOut: () =>
+    set((s) => ({
+      zoomLevel: Math.max(s.zoomLevel - ZOOM_STEP, ZOOM_MIN),
+    })),
+  resetZoom: () => set({ zoomLevel: 1 }),
+  setZoom: (level) =>
+    set({ zoomLevel: Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, level)) }),
 }));

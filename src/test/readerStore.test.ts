@@ -18,6 +18,7 @@ describe("useReaderStore", () => {
       readingMode: "single",
       readingDirection: "ltr",
       fitMode: "best-fit",
+      zoomLevel: 1,
     });
   });
 
@@ -227,5 +228,92 @@ describe("nextSpread / prevSpread", () => {
     useReaderStore.getState().setCurrentIndex(9);
     useReaderStore.getState().prevSpread();
     expect(useReaderStore.getState().currentIndex).toBe(7);
+  });
+});
+
+describe("zoomLevel", () => {
+  beforeEach(() => {
+    useReaderStore.setState({
+      bookId: null,
+      pages: mockPages,
+      currentIndex: 0,
+      readingMode: "single",
+      readingDirection: "ltr",
+      fitMode: "best-fit",
+      zoomLevel: 1,
+    });
+  });
+
+  it("defaults zoomLevel to 1", () => {
+    expect(useReaderStore.getState().zoomLevel).toBe(1);
+  });
+
+  it("zoomIn increases zoomLevel by 0.25", () => {
+    useReaderStore.getState().zoomIn();
+    expect(useReaderStore.getState().zoomLevel).toBe(1.25);
+  });
+
+  it("zoomOut decreases zoomLevel by 0.25", () => {
+    useReaderStore.getState().zoomIn();
+    useReaderStore.getState().zoomOut();
+    expect(useReaderStore.getState().zoomLevel).toBe(1);
+  });
+
+  it("zoomIn clamps at max 5.0", () => {
+    useReaderStore.setState({ zoomLevel: 4.9 });
+    useReaderStore.getState().zoomIn();
+    expect(useReaderStore.getState().zoomLevel).toBe(5);
+  });
+
+  it("zoomIn stays at 5.0 when already at max", () => {
+    useReaderStore.setState({ zoomLevel: 5 });
+    useReaderStore.getState().zoomIn();
+    expect(useReaderStore.getState().zoomLevel).toBe(5);
+  });
+
+  it("zoomOut clamps at min 0.25", () => {
+    useReaderStore.setState({ zoomLevel: 0.35 });
+    useReaderStore.getState().zoomOut();
+    expect(useReaderStore.getState().zoomLevel).toBe(0.25);
+  });
+
+  it("zoomOut stays at 0.25 when already at min", () => {
+    useReaderStore.setState({ zoomLevel: 0.25 });
+    useReaderStore.getState().zoomOut();
+    expect(useReaderStore.getState().zoomLevel).toBe(0.25);
+  });
+
+  it("resetZoom sets zoomLevel to 1", () => {
+    useReaderStore.setState({ zoomLevel: 2.5 });
+    useReaderStore.getState().resetZoom();
+    expect(useReaderStore.getState().zoomLevel).toBe(1);
+  });
+
+  it("setZoom sets zoomLevel directly", () => {
+    useReaderStore.getState().setZoom(3);
+    expect(useReaderStore.getState().zoomLevel).toBe(3);
+  });
+
+  it("setZoom clamps to 0.25 minimum", () => {
+    useReaderStore.getState().setZoom(0.1);
+    expect(useReaderStore.getState().zoomLevel).toBe(0.25);
+  });
+
+  it("setZoom clamps to 5.0 maximum", () => {
+    useReaderStore.getState().setZoom(10);
+    expect(useReaderStore.getState().zoomLevel).toBe(5);
+  });
+
+  it("setZoom accepts exact boundary values", () => {
+    useReaderStore.getState().setZoom(0.25);
+    expect(useReaderStore.getState().zoomLevel).toBe(0.25);
+    useReaderStore.getState().setZoom(5);
+    expect(useReaderStore.getState().zoomLevel).toBe(5);
+  });
+
+  it("setBookId resets zoomLevel to 1", () => {
+    useReaderStore.setState({ zoomLevel: 2.5 });
+    useReaderStore.getState().setBookId(99);
+    expect(useReaderStore.getState().zoomLevel).toBe(1);
   });
 });

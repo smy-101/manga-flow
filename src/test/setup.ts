@@ -39,3 +39,34 @@ class MockIntersectionObserver {
 
 globalThis.IntersectionObserver =
   MockIntersectionObserver as unknown as typeof IntersectionObserver;
+
+// Mock ResizeObserver for jsdom
+class MockResizeObserver {
+  private callback: ResizeObserverCallback;
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+  }
+
+  observe(target: Element) {
+    const rect = target.getBoundingClientRect();
+    this.callback(
+      [
+        {
+          target,
+          contentRect: rect,
+          borderBoxSize: [],
+          contentBoxSize: [],
+          devicePixelContentBoxSize: [],
+        },
+      ],
+      this,
+    );
+  }
+
+  unobserve() {}
+  disconnect() {}
+}
+
+globalThis.ResizeObserver =
+  MockResizeObserver as unknown as typeof ResizeObserver;

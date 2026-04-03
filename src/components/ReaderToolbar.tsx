@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ReadingMode, ReadingDirection, FitMode } from "../stores/readerStore";
 import { getSpreadPages } from "../utils/spreadUtils";
 import ReaderSettingsPanel from "./ReaderSettingsPanel";
+import ZoomControl from "./ZoomControl";
 import "./ReaderToolbar.css";
 
 interface ReaderToolbarProps {
@@ -12,6 +13,8 @@ interface ReaderToolbarProps {
   readingDirection: ReadingDirection;
   fitMode: FitMode;
   onBack: () => void;
+  onNext: () => void;
+  onPrev: () => void;
   onModeChange: (mode: ReadingMode) => void;
   onDirectionChange: (direction: ReadingDirection) => void;
   onFitModeChange: (mode: FitMode) => void;
@@ -25,6 +28,8 @@ export default function ReaderToolbar({
   readingDirection,
   fitMode,
   onBack,
+  onNext,
+  onPrev,
   onModeChange,
   onDirectionChange,
   onFitModeChange,
@@ -50,9 +55,20 @@ export default function ReaderToolbar({
         </svg>
       </button>
       <span className="reader-page-info">
+        <button className="reader-topbar-btn reader-page-nav" onClick={onPrev} disabled={pageIndex === 0} title="上一页">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
         {pageInfo}
+        <button className="reader-topbar-btn reader-page-nav" onClick={onNext} disabled={pageIndex >= totalPages - 1} title="下一页">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
       </span>
       <div className="reader-topbar-settings">
+        <ZoomControl />
         <button
           className="reader-topbar-btn"
           onClick={() => setSettingsOpen((prev) => !prev)}

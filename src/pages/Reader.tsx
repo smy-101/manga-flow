@@ -9,6 +9,7 @@ import { bookPreferencesRepo } from "../repos/bookPreferencesRepo";
 import { resolvePreferences } from "../utils/resolvePreferences";
 import { normalizeToSpreadStart } from "../utils/spreadUtils";
 import { useImmersiveMode } from "../hooks/useImmersiveMode";
+import { useZoomEvents } from "../hooks/useZoomEvents";
 import ReaderToolbar from "../components/ReaderToolbar";
 import SinglePageViewer from "../components/SinglePageViewer";
 import ContinuousScrollViewer from "../components/ContinuousScrollViewer";
@@ -45,6 +46,7 @@ export default function Reader() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollViewerRef = useRef<ContinuousScrollViewerHandle>(null);
   const { showUI, handleMouseMove } = useImmersiveMode();
+  useZoomEvents();
 
   useEffect(() => {
     if (!bookIdNum) return;
@@ -198,6 +200,8 @@ export default function Reader() {
         readingDirection={readingDirection}
         fitMode={fitMode}
         onBack={() => navigate("/")}
+        onNext={readingMode === "spread" ? nextSpread : nextPage}
+        onPrev={readingMode === "spread" ? prevSpread : prevPage}
         onModeChange={handleModeChange}
         onDirectionChange={handleDirectionChange}
         onFitModeChange={handleFitModeChange}

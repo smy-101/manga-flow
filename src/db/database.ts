@@ -40,22 +40,34 @@ CREATE TABLE IF NOT EXISTS reading_progress (
 `;
 
 let dbInstance: Database | null = null;
+let dbInitPromise: Promise<Database> | null = null;
+
+async function initDb(): Promise<Database> {
+  const db = await Database.load("sqlite:manga-flow.db");
+  await db.execute("PRAGMA foreign_keys = ON");
+  await db.execute("PRAGMA journal_mode = WAL");
+  await db.execute("PRAGMA busy_timeout = 5000");
+  await db.execute(CREATE_TABLES_SQL);
+  await runMigrations(db);
+  return db;
+}
 
 export async function getDb(): Promise<Database> {
-  if (!dbInstance) {
-    dbInstance = await Database.load("sqlite:manga-flow.db");
-    await dbInstance.execute("PRAGMA foreign_keys = ON");
-    await dbInstance.execute("PRAGMA journal_mode = WAL");
-    await dbInstance.execute("PRAGMA busy_timeout = 5000");
-    await dbInstance.execute(CREATE_TABLES_SQL);
-    await runMigrations(dbInstance);
+  if (dbInstance) return dbInstance;
+  if (!dbInitPromise) {
+    dbInitPromise = initDb().catch((e) => {
+      dbInitPromise = null;
+      throw e;
+    });
+    dbInstance = await dbInitPromise;
   }
-  return dbInstance;
+  return dbInitPromise;
 }
 
 export async function closeDb(): Promise<void> {
   if (dbInstance) {
     await dbInstance.close();
     dbInstance = null;
+    dbInitPromise = null;
   }
 }

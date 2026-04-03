@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState, forwardRef, useImperativeHandle } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { useReaderStore } from "../stores/readerStore";
 import type { Page } from "../db/types";
 import type { ReadingDirection } from "../stores/readerStore";
 import "./ContinuousScrollViewer.css";
@@ -31,6 +32,36 @@ const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, Continuo
   const settlingRef = useRef(false);
   const heightsRef = useRef<Map<number, number>>(new Map());
   const isRtl = readingDirection === "rtl";
+  const zoomLevel = useReaderStore((s) => s.zoomLevel);
+  const zoomedIn = zoomLevel > 1;
+
+  // Drag-to-pan when zoomed in
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (!zoomedIn) return;
+      e.preventDefault();
+      const el = containerRef.current;
+      if (!el) return;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const scrollLeft = el.scrollLeft;
+      const scrollTop = el.scrollTop;
+      el.style.cursor = "grabbing";
+
+      const onMouseMove = (ev: MouseEvent) => {
+        el.scrollLeft = scrollLeft - (ev.clientX - startX);
+        el.scrollTop = scrollTop - (ev.clientY - startY);
+      };
+      const onMouseUp = () => {
+        el.style.cursor = "";
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      };
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    },
+    [zoomedIn],
+  );
 
   useImperativeHandle(ref, () => ({
     scrollBy(delta: number) {
@@ -213,7 +244,8 @@ const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, Continuo
     (idx: number) => {
       const el = pageElementsRef.current[idx];
       if (el) {
-        heightsRef.current.set(idx, el.offsetHeight);
+        // Store base height (at zoom=1) so placeholders scale correctly
+        heightsRef.current.set(idx, el.offsetHeight / zoomLevel);
       }
 
       if (initialScrollDone.current) return;
@@ -227,7 +259,7 @@ const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, Continuo
         }
       }
     },
-    [startSettling],
+    [startSettling, zoomLevel],
   );
 
   // Fallback: if image was loaded from cache before onLoad handler attached
@@ -249,19 +281,24 @@ const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, Continuo
   const getPlaceholderStyle = useCallback(
     (idx: number): React.CSSProperties => {
       const cached = heightsRef.current.get(idx);
-      if (cached) return { minHeight: cached };
+      if (cached) return { minHeight: cached * zoomLevel };
       const measured = Array.from(heightsRef.current.values());
       if (measured.length > 0) {
         const avg = measured.reduce((a, b) => a + b, 0) / measured.length;
-        return { minHeight: avg };
+        return { minHeight: avg * zoomLevel };
       }
       return {};
     },
-    [],
+    [zoomLevel],
   );
 
   return (
-    <div className="continuous-scroll-viewer" ref={containerRef} tabIndex={-1}>
+    <div
+      className={`continuous-scroll-viewer${zoomedIn ? " continuous-scroll-viewer--zoomed" : ""}`}
+      ref={containerRef}
+      tabIndex={-1}
+      onMouseDown={handleMouseDown}
+    >
       {pages.map((page, idx) => (
         <div
           key={page.id}
@@ -269,15 +306,20 @@ const ContinuousScrollViewer = forwardRef<ContinuousScrollViewerHandle, Continuo
           ref={setPageRef(idx)}
           data-page-index={idx}
           data-testid="scroll-page"
-          style={getPlaceholderStyle(idx)}
+          style={{
+            ...getPlaceholderStyle(idx),
+            ...(zoomLevel !== 1 ? { width: `${zoomLevel * 100}%` } : {}),
+          }}
         >
           {idx >= renderRange[0] && idx <= renderRange[1] ? (
-            <img
-              src={convertFileSrc(page.file_path)}
-              alt={`Page ${idx + 1}`}
-              loading={idx === initialIndexRef.current ? "eager" : "lazy"}
-              onLoad={() => handleImageLoad(idx)}
-            />
+            <div className="continuous-scroll-page__content">
+              <img
+                src={convertFileSrc(page.file_path)}
+                alt={`Page ${idx + 1}`}
+                loading="eager"
+                onLoad={() => handleImageLoad(idx)}
+              />
+            </div>
           ) : (
             <div className="continuous-scroll-page__placeholder" />
           )}

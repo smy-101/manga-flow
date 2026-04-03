@@ -1,9 +1,16 @@
 .continuous-scroll-viewer {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.continuous-scroll-viewer--zoomed {
+  overflow-x: auto;
+  align-items: flex-start;
+  cursor: grab;
 }
 
 .continuous-scroll-page {
@@ -18,6 +25,10 @@
   display: block;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.continuous-scroll-page__content {
+  width: 100%;
 }
 
 .continuous-scroll-page__placeholder {

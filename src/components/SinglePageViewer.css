@@ -11,6 +11,25 @@
   overflow: auto;
 }
 
+.reader-image-area--zoomed {
+  cursor: grab;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.reader-image-area--zoomed > .reader-image-wrapper {
+  margin: auto;
+  flex-shrink: 0;
+}
+
+.reader-image-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
 .reader-image {
   width: 100%;
   height: 100%;

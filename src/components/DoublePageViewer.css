@@ -12,6 +12,26 @@
   overflow: auto;
 }
 
+.spread-image-area--zoomed {
+  cursor: grab;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.spread-image-area--zoomed > .spread-image-wrapper {
+  margin: auto;
+  flex-shrink: 0;
+}
+
+.spread-image-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+}
+
 .spread-image {
   max-width: 50%;
   height: 100%;
