@@ -36,6 +36,11 @@ describe("useSettingsStore", () => {
       useSettingsStore.getState().setDefaultReadingMode("single");
       expect(useSettingsStore.getState().defaultReadingMode).toBe("single");
     });
+
+    it('accepts "spread" as a valid mode', () => {
+      useSettingsStore.getState().setDefaultReadingMode("spread");
+      expect(useSettingsStore.getState().defaultReadingMode).toBe("spread");
+    });
   });
 
   describe("defaultReadingDirection", () => {

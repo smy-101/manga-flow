@@ -413,4 +413,22 @@ describe("ReaderToolbar", () => {
     await userEvent.click(screen.getByText("连续滚动"));
     expect(onModeChange).toHaveBeenCalledWith("continuous");
   });
+
+  it("spread mode: cover page shows '1 / 10'", async () => {
+    const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
+    render(<ReaderToolbar {...toolbarProps} readingMode="spread" pageIndex={0} />);
+    expect(screen.getByText("1 / 10")).toBeInTheDocument();
+  });
+
+  it("spread mode: spread shows '2-3 / 10'", async () => {
+    const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
+    render(<ReaderToolbar {...toolbarProps} readingMode="spread" pageIndex={1} />);
+    expect(screen.getByText("2-3 / 10")).toBeInTheDocument();
+  });
+
+  it("spread mode: solo last page shows '10 / 10'", async () => {
+    const { default: ReaderToolbar } = await import("../components/ReaderToolbar");
+    render(<ReaderToolbar {...toolbarProps} readingMode="spread" totalPages={10} pageIndex={9} />);
+    expect(screen.getByText("10 / 10")).toBeInTheDocument();
+  });
 });

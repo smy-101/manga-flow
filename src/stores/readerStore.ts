@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Page } from "../db/types";
+import { normalizeToSpreadStart } from "../utils/spreadUtils";
 
 /**
  * Returns page indices to preload around the current page.
@@ -19,7 +20,7 @@ export function getPreloadRange(
   return indices;
 }
 
-export type ReadingMode = "single" | "continuous";
+export type ReadingMode = "single" | "continuous" | "spread";
 export type ReadingDirection = "ltr" | "rtl";
 
 interface ReaderState {
@@ -35,6 +36,8 @@ interface ReaderState {
   setReadingDirection: (direction: ReadingDirection) => void;
   nextPage: () => void;
   prevPage: () => void;
+  nextSpread: () => void;
+  prevSpread: () => void;
 }
 
 export const useReaderStore = create<ReaderState>()((set) => ({
@@ -56,4 +59,23 @@ export const useReaderStore = create<ReaderState>()((set) => ({
     set((s) => ({
       currentIndex: Math.max(s.currentIndex - 1, 0),
     })),
+  nextSpread: () =>
+    set((s) => {
+      const { currentIndex, pages } = s;
+      const total = pages.length;
+      if (total <= 1) return s;
+      if (currentIndex === 0) return { currentIndex: 1 };
+      const next = normalizeToSpreadStart(currentIndex) + 2;
+      if (next >= total) return s;
+      return { currentIndex: next };
+    }),
+  prevSpread: () =>
+    set((s) => {
+      const { currentIndex, pages } = s;
+      const total = pages.length;
+      if (total <= 1 || currentIndex === 0) return s;
+      if (currentIndex <= 2) return { currentIndex: 0 };
+      const prev = normalizeToSpreadStart(currentIndex) - 2;
+      return { currentIndex: Math.max(prev, 0) };
+    }),
 }));

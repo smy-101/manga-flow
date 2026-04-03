@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useReaderStore, getPreloadRange } from "../stores/readerStore";
+import type { ReadingMode } from "../stores/readerStore";
 import type { Page } from "../db/types";
 
 const mockPages: Page[] = [
@@ -123,5 +124,95 @@ describe("getPreloadRange", () => {
     expect(getPreloadRange(5, 10)).toEqual([3, 4, 6, 7]);
     expect(getPreloadRange(0, 10)).toEqual([1, 2]);
     expect(getPreloadRange(9, 10)).toEqual([7, 8]);
+  });
+});
+
+describe("ReadingMode type", () => {
+  it("accepts 'spread' as a valid ReadingMode", () => {
+    const mode: ReadingMode = "spread";
+    useReaderStore.getState().setReadingMode(mode);
+    expect(useReaderStore.getState().readingMode).toBe("spread");
+  });
+});
+
+describe("nextSpread / prevSpread", () => {
+  // 10 pages: [0] [1,2] [3,4] [5,6] [7,8] [9]
+  //           cov  sp1   sp2   sp3   sp4   sp5
+  const tenPages: Page[] = Array.from({ length: 10 }, (_, i) => ({
+    id: i + 1,
+    chapter_id: 1,
+    page_index: i + 1,
+    file_name: `${String(i + 1).padStart(3, "0")}.jpg`,
+    file_path: `/books/uuid/pages/${String(i + 1).padStart(3, "0")}.jpg`,
+  }));
+
+  beforeEach(() => {
+    useReaderStore.setState({
+      bookId: null,
+      pages: tenPages,
+      currentIndex: 0,
+      readingMode: "single",
+      readingDirection: "ltr",
+    });
+  });
+
+  // --- nextSpread ---
+  it("from cover (index 0) advances to spread start (index 1)", () => {
+    useReaderStore.getState().nextSpread();
+    expect(useReaderStore.getState().currentIndex).toBe(1);
+  });
+
+  it("from spread start advances by 2", () => {
+    useReaderStore.getState().setCurrentIndex(1);
+    useReaderStore.getState().nextSpread();
+    expect(useReaderStore.getState().currentIndex).toBe(3);
+  });
+
+  it("from spread right-page still advances to next spread start", () => {
+    useReaderStore.getState().setCurrentIndex(2);
+    useReaderStore.getState().nextSpread();
+    expect(useReaderStore.getState().currentIndex).toBe(3);
+  });
+
+  it("from last spread (odd total) stays put", () => {
+    useReaderStore.getState().setCurrentIndex(9);
+    useReaderStore.getState().nextSpread();
+    expect(useReaderStore.getState().currentIndex).toBe(9);
+  });
+
+  it("from second-to-last spread stays at last spread start", () => {
+    useReaderStore.getState().setCurrentIndex(7);
+    useReaderStore.getState().nextSpread();
+    expect(useReaderStore.getState().currentIndex).toBe(9);
+  });
+
+  // --- prevSpread ---
+  it("from cover stays at cover", () => {
+    useReaderStore.getState().prevSpread();
+    expect(useReaderStore.getState().currentIndex).toBe(0);
+  });
+
+  it("from first spread start goes back to cover", () => {
+    useReaderStore.getState().setCurrentIndex(1);
+    useReaderStore.getState().prevSpread();
+    expect(useReaderStore.getState().currentIndex).toBe(0);
+  });
+
+  it("from first spread right-page goes back to cover", () => {
+    useReaderStore.getState().setCurrentIndex(2);
+    useReaderStore.getState().prevSpread();
+    expect(useReaderStore.getState().currentIndex).toBe(0);
+  });
+
+  it("from middle spread goes back by 2", () => {
+    useReaderStore.getState().setCurrentIndex(5);
+    useReaderStore.getState().prevSpread();
+    expect(useReaderStore.getState().currentIndex).toBe(3);
+  });
+
+  it("from last spread (odd) goes back by 2", () => {
+    useReaderStore.getState().setCurrentIndex(9);
+    useReaderStore.getState().prevSpread();
+    expect(useReaderStore.getState().currentIndex).toBe(7);
   });
 });

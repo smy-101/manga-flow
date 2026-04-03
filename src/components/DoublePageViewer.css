@@ -1,0 +1,21 @@
+.spread-image-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.spread-image {
+  max-width: 50%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.spread-image--solo {
+  max-width: 100%;
+}

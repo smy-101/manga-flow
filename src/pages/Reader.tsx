@@ -7,10 +7,12 @@ import { pageRepo } from "../repos/pageRepo";
 import { progressRepo } from "../repos/progressRepo";
 import { bookPreferencesRepo } from "../repos/bookPreferencesRepo";
 import { resolvePreferences } from "../utils/resolvePreferences";
+import { normalizeToSpreadStart } from "../utils/spreadUtils";
 import { useImmersiveMode } from "../hooks/useImmersiveMode";
 import ReaderToolbar from "../components/ReaderToolbar";
 import SinglePageViewer from "../components/SinglePageViewer";
 import ContinuousScrollViewer from "../components/ContinuousScrollViewer";
+import DoublePageViewer from "../components/DoublePageViewer";
 import type { ContinuousScrollViewerHandle } from "../components/ContinuousScrollViewer";
 import PageSlider from "../components/PageSlider";
 import "./Reader.css";
@@ -34,6 +36,8 @@ export default function Reader() {
     setReadingDirection,
     nextPage,
     prevPage,
+    nextSpread,
+    prevSpread,
   } = useReaderStore();
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,6 +68,12 @@ export default function Reader() {
       );
       setReadingMode(resolved.readingMode);
       setReadingDirection(resolved.readingDirection);
+
+      // Normalize index to spread start when in spread mode
+      const { currentIndex } = useReaderStore.getState();
+      if (resolved.readingMode === "spread" && currentIndex > 0) {
+        setCurrentIndex(normalizeToSpreadStart(currentIndex));
+      }
     }
     load();
   }, [bookIdNum, setBookId, setPages, setCurrentIndex, setReadingMode, setReadingDirection]);
@@ -98,16 +108,18 @@ export default function Reader() {
         navigate("/");
         return;
       }
-      if (readingMode !== "single") return;
+      if (readingMode === "continuous") return;
       const goNext = isRtl ? "ArrowLeft" : "ArrowRight";
       const goPrev = isRtl ? "ArrowRight" : "ArrowLeft";
+      const next = readingMode === "spread" ? nextSpread : nextPage;
+      const prev = readingMode === "spread" ? prevSpread : prevPage;
       if (e.key === goNext) {
-        nextPage();
+        next();
       } else if (e.key === goPrev) {
-        prevPage();
+        prev();
       }
     },
-    [readingMode, isRtl, nextPage, prevPage, navigate],
+    [readingMode, isRtl, nextPage, prevPage, nextSpread, prevSpread, navigate],
   );
 
   useEffect(() => {
@@ -118,11 +130,14 @@ export default function Reader() {
   const handleModeChange = useCallback(
     (mode: ReadingMode) => {
       setReadingMode(mode);
+      if (mode === "spread") {
+        setCurrentIndex(normalizeToSpreadStart(useReaderStore.getState().currentIndex));
+      }
       if (bookIdNum) {
         bookPreferencesRepo.upsert(bookIdNum, { reading_mode: mode });
       }
     },
-    [setReadingMode, bookIdNum],
+    [setReadingMode, setCurrentIndex, bookIdNum],
   );
 
   const handleDirectionChange = useCallback(
@@ -140,6 +155,13 @@ export default function Reader() {
       setCurrentIndex(index);
     },
     [setCurrentIndex],
+  );
+
+  const handleSliderChange = useCallback(
+    (index: number) => {
+      setCurrentIndex(readingMode === "spread" ? normalizeToSpreadStart(index) : index);
+    },
+    [readingMode, setCurrentIndex],
   );
 
   const totalPages = pages.length;
@@ -172,6 +194,14 @@ export default function Reader() {
           onNext={nextPage}
           onPrev={prevPage}
         />
+      ) : readingMode === "spread" ? (
+        <DoublePageViewer
+          pages={pages}
+          currentIndex={currentIndex}
+          readingDirection={readingDirection}
+          onNext={nextSpread}
+          onPrev={prevSpread}
+        />
       ) : (
         <ContinuousScrollViewer
           ref={scrollViewerRef}
@@ -186,7 +216,7 @@ export default function Reader() {
         visible={showUI}
         currentIndex={currentIndex}
         totalPages={totalPages}
-        onChange={setCurrentIndex}
+        onChange={handleSliderChange}
       />
     </div>
   );

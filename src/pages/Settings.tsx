@@ -66,6 +66,12 @@ export default function Settings() {
             >
               连续滚动
             </button>
+            <button
+              className={`settings-mode-btn ${defaultReadingMode === "spread" ? "settings-mode-btn--active" : ""}`}
+              onClick={() => setDefaultReadingMode("spread")}
+            >
+              双页展开
+            </button>
           </div>
         </div>
         <div className="settings-field">

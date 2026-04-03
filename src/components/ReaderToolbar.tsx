@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ReadingMode, ReadingDirection } from "../stores/readerStore";
+import { getSpreadPages } from "../utils/spreadUtils";
 import ReaderSettingsPanel from "./ReaderSettingsPanel";
 import "./ReaderToolbar.css";
 
@@ -26,6 +27,17 @@ export default function ReaderToolbar({
 }: ReaderToolbarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  const pageInfo = (() => {
+    if (readingMode !== "spread") {
+      return `${pageIndex + 1} / ${totalPages}`;
+    }
+    const spreadIndices = getSpreadPages(pageIndex, totalPages);
+    if (spreadIndices.length === 1) {
+      return `${spreadIndices[0] + 1} / ${totalPages}`;
+    }
+    return `${spreadIndices[0] + 1}-${spreadIndices[1] + 1} / ${totalPages}`;
+  })();
+
   return (
     <div className={`reader-topbar${visible ? "" : " reader-topbar--hidden"}`}>
       <button className="reader-back" onClick={onBack} title="返回书库">
@@ -34,7 +46,7 @@ export default function ReaderToolbar({
         </svg>
       </button>
       <span className="reader-page-info">
-        {pageIndex + 1} / {totalPages}
+        {pageInfo}
       </span>
       <div className="reader-topbar-settings">
         <button
@@ -53,6 +65,7 @@ export default function ReaderToolbar({
           <ReaderSettingsPanel
             readingMode={readingMode}
             readingDirection={readingDirection}
+            totalPages={totalPages}
             onModeChange={onModeChange}
             onDirectionChange={onDirectionChange}
             onClose={() => setSettingsOpen(false)}

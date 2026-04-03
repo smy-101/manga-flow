@@ -5,6 +5,7 @@ import "./ReaderSettingsPanel.css";
 interface ReaderSettingsPanelProps {
   readingMode: ReadingMode;
   readingDirection: ReadingDirection;
+  totalPages: number;
   onModeChange: (mode: ReadingMode) => void;
   onDirectionChange: (direction: ReadingDirection) => void;
   onClose: () => void;
@@ -13,6 +14,7 @@ interface ReaderSettingsPanelProps {
 export default function ReaderSettingsPanel({
   readingMode,
   readingDirection,
+  totalPages,
   onModeChange,
   onDirectionChange,
   onClose,
@@ -59,6 +61,13 @@ export default function ReaderSettingsPanel({
             onClick={() => onModeChange("continuous")}
           >
             连续滚动
+          </button>
+          <button
+            className={`settings-option ${readingMode === "spread" ? "settings-option--active" : ""}`}
+            onClick={() => onModeChange("spread")}
+            disabled={totalPages <= 1}
+          >
+            双页展开
           </button>
         </div>
       </div>

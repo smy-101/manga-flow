@@ -6,6 +6,7 @@ describe("ReaderSettingsPanel", () => {
   const defaultProps = {
     readingMode: "single" as const,
     readingDirection: "ltr" as const,
+    totalPages: 10,
     onModeChange: vi.fn(),
     onDirectionChange: vi.fn(),
     onClose: vi.fn(),
@@ -27,6 +28,7 @@ describe("ReaderSettingsPanel", () => {
     render(<ReaderSettingsPanel {...defaultProps} />);
     expect(screen.getByText("单页模式")).toBeInTheDocument();
     expect(screen.getByText("连续滚动")).toBeInTheDocument();
+    expect(screen.getByText("双页展开")).toBeInTheDocument();
   });
 
   it("renders direction options", async () => {
@@ -51,6 +53,20 @@ describe("ReaderSettingsPanel", () => {
     expect(onModeChange).toHaveBeenCalledWith("continuous");
   });
 
+  it("calls onModeChange with 'spread' when clicking 双页展开", async () => {
+    const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
+    const onModeChange = vi.fn();
+    render(<ReaderSettingsPanel {...defaultProps} onModeChange={onModeChange} />);
+    await userEvent.click(screen.getByText("双页展开"));
+    expect(onModeChange).toHaveBeenCalledWith("spread");
+  });
+
+  it("highlights spread mode when active", async () => {
+    const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
+    render(<ReaderSettingsPanel {...defaultProps} readingMode="spread" />);
+    expect(screen.getByText("双页展开").closest(".settings-option")).toHaveClass("settings-option--active");
+  });
+
   it("calls onDirectionChange when clicking a different direction option", async () => {
     const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
     const onDirectionChange = vi.fn();
@@ -65,5 +81,17 @@ describe("ReaderSettingsPanel", () => {
     render(<ReaderSettingsPanel {...defaultProps} onClose={onClose} />);
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("disables spread option when totalPages <= 1", async () => {
+    const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
+    render(<ReaderSettingsPanel {...defaultProps} totalPages={1} />);
+    expect(screen.getByText("双页展开")).toBeDisabled();
+  });
+
+  it("enables spread option when totalPages > 1", async () => {
+    const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
+    render(<ReaderSettingsPanel {...defaultProps} totalPages={2} />);
+    expect(screen.getByText("双页展开")).not.toBeDisabled();
   });
 });
