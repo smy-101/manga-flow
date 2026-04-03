@@ -8,6 +8,10 @@
   cursor: pointer;
 }
 
+.spread-image-area--scrollable {
+  overflow: auto;
+}
+
 .spread-image {
   max-width: 50%;
   height: 100%;
@@ -17,5 +21,35 @@
 }
 
 .spread-image--solo {
+  max-width: 100%;
+}
+
+.spread-image--fit-width {
+  max-width: 50%;
+  width: 50%;
+  height: auto;
+  object-fit: unset;
+}
+
+.spread-image--solo.spread-image--fit-width {
+  max-width: 100%;
+  width: 100%;
+}
+
+.spread-image--fit-height {
+  max-width: 50%;
+  height: 100%;
+  width: auto;
+  object-fit: unset;
+}
+
+.spread-image--original {
+  max-width: 50%;
+  width: auto;
+  height: auto;
+  object-fit: unset;
+}
+
+.spread-image--solo.spread-image--original {
   max-width: 100%;
 }

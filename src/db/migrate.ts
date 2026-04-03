@@ -1,7 +1,7 @@
 import type Database from "@tauri-apps/plugin-sql";
 
 export async function runMigrations(db: Database): Promise<void> {
-  const migrations = [MIGRATION_001_BOOK_PREFERENCES];
+  const migrations = [MIGRATION_001_BOOK_PREFERENCES, MIGRATION_002_FIT_MODE];
 
   for (const sql of migrations) {
     await db.execute(sql);
@@ -15,4 +15,8 @@ CREATE TABLE IF NOT EXISTS book_preferences (
   reading_direction TEXT,
   FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
 );
+`;
+
+const MIGRATION_002_FIT_MODE = `
+ALTER TABLE book_preferences ADD COLUMN fit_mode TEXT DEFAULT NULL;
 `;

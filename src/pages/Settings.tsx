@@ -12,6 +12,8 @@ export default function Settings() {
   const setDefaultReadingMode = useSettingsStore((s) => s.setDefaultReadingMode);
   const defaultReadingDirection = useSettingsStore((s) => s.defaultReadingDirection);
   const setDefaultReadingDirection = useSettingsStore((s) => s.setDefaultReadingDirection);
+  const defaultFitMode = useSettingsStore((s) => s.defaultFitMode);
+  const setDefaultFitMode = useSettingsStore((s) => s.setDefaultFitMode);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,6 +90,35 @@ export default function Settings() {
               onClick={() => setDefaultReadingDirection("rtl")}
             >
               从右到左
+            </button>
+          </div>
+        </div>
+        <div className="settings-field">
+          <label className="settings-label">默认适配模式</label>
+          <div className="settings-mode-options">
+            <button
+              className={`settings-mode-btn ${defaultFitMode === "best-fit" ? "settings-mode-btn--active" : ""}`}
+              onClick={() => setDefaultFitMode("best-fit")}
+            >
+              最佳适配
+            </button>
+            <button
+              className={`settings-mode-btn ${defaultFitMode === "fit-width" ? "settings-mode-btn--active" : ""}`}
+              onClick={() => setDefaultFitMode("fit-width")}
+            >
+              适配宽度
+            </button>
+            <button
+              className={`settings-mode-btn ${defaultFitMode === "fit-height" ? "settings-mode-btn--active" : ""}`}
+              onClick={() => setDefaultFitMode("fit-height")}
+            >
+              适配高度
+            </button>
+            <button
+              className={`settings-mode-btn ${defaultFitMode === "original" ? "settings-mode-btn--active" : ""}`}
+              onClick={() => setDefaultFitMode("original")}
+            >
+              原始大小
             </button>
           </div>
         </div>

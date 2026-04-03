@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { getPreloadRange } from "../stores/readerStore";
-import type { ReadingDirection } from "../stores/readerStore";
+import type { ReadingDirection, FitMode } from "../stores/readerStore";
 import type { Page } from "../db/types";
 import "./SinglePageViewer.css";
 
@@ -11,6 +11,7 @@ interface SinglePageViewerProps {
   pages: Page[];
   currentIndex: number;
   readingDirection?: ReadingDirection;
+  fitMode?: FitMode;
   onNext: () => void;
   onPrev: () => void;
 }
@@ -19,6 +20,7 @@ export default function SinglePageViewer({
   pages,
   currentIndex,
   readingDirection = "ltr",
+  fitMode = "best-fit",
   onNext,
   onPrev,
 }: SinglePageViewerProps) {
@@ -46,10 +48,10 @@ export default function SinglePageViewer({
 
   return (
     <>
-      <div className="reader-image-area" onClick={handleClick}>
+      <div className={`reader-image-area${fitMode !== "best-fit" ? " reader-image-area--scrollable" : ""}`} onClick={handleClick}>
         {currentPage && (
           <img
-            className="reader-image"
+            className={`reader-image${fitMode !== "best-fit" ? ` reader-image--${fitMode}` : ""}`}
             src={convertFileSrc(currentPage.file_path)}
             alt={`Page ${currentIndex + 1}`}
           />

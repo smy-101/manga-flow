@@ -3,7 +3,7 @@ import { useSettingsStore } from "../stores/settingsStore";
 
 describe("useSettingsStore", () => {
   beforeEach(() => {
-    useSettingsStore.setState({ libraryPath: "", defaultReadingMode: "single", defaultReadingDirection: "ltr" });
+    useSettingsStore.setState({ libraryPath: "", defaultReadingMode: "single", defaultReadingDirection: "ltr", defaultFitMode: "best-fit" });
   });
 
   it("has empty string as default libraryPath", () => {
@@ -57,6 +57,24 @@ describe("useSettingsStore", () => {
       useSettingsStore.getState().setDefaultReadingDirection("rtl");
       useSettingsStore.getState().setDefaultReadingDirection("ltr");
       expect(useSettingsStore.getState().defaultReadingDirection).toBe("ltr");
+    });
+  });
+
+  describe("defaultFitMode", () => {
+    it('defaults to "best-fit"', () => {
+      expect(useSettingsStore.getState().defaultFitMode).toBe("best-fit");
+    });
+
+    it("updates via setDefaultFitMode", () => {
+      useSettingsStore.getState().setDefaultFitMode("fit-width");
+      expect(useSettingsStore.getState().defaultFitMode).toBe("fit-width");
+    });
+
+    it("accepts all valid fit modes", () => {
+      for (const mode of ["best-fit", "fit-width", "fit-height", "original"] as const) {
+        useSettingsStore.getState().setDefaultFitMode(mode);
+        expect(useSettingsStore.getState().defaultFitMode).toBe(mode);
+      }
     });
   });
 });

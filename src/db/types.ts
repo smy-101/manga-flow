@@ -58,4 +58,5 @@ export interface BookPreference {
   book_id: number;
   reading_mode: string | null;
   reading_direction: string | null;
+  fit_mode: string | null;
 }

@@ -366,9 +366,11 @@ describe("ReaderToolbar", () => {
     totalPages: 10,
     readingMode: "single" as const,
     readingDirection: "ltr" as const,
+    fitMode: "best-fit" as const,
     onBack: vi.fn(),
     onModeChange: vi.fn(),
     onDirectionChange: vi.fn(),
+    onFitModeChange: vi.fn(),
   };
 
   it("renders back button", async () => {

@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useReaderStore } from "../stores/readerStore";
-import type { ReadingMode, ReadingDirection } from "../stores/readerStore";
+import type { ReadingMode, ReadingDirection, FitMode } from "../stores/readerStore";
 import { useSettingsStore } from "../stores/settingsStore";
 import { pageRepo } from "../repos/pageRepo";
 import { progressRepo } from "../repos/progressRepo";
@@ -29,11 +29,13 @@ export default function Reader() {
     currentIndex,
     readingMode,
     readingDirection,
+    fitMode,
     setBookId,
     setPages,
     setCurrentIndex,
     setReadingMode,
     setReadingDirection,
+    setFitMode,
     nextPage,
     prevPage,
     nextSpread,
@@ -51,6 +53,7 @@ export default function Reader() {
     const globalDefaults = useSettingsStore.getState();
     setReadingMode(globalDefaults.defaultReadingMode);
     setReadingDirection(globalDefaults.defaultReadingDirection);
+    setFitMode(globalDefaults.defaultFitMode);
 
     async function load() {
       const allPages = await pageRepo.getByBookId(bookIdNum);
@@ -63,11 +66,12 @@ export default function Reader() {
 
       const bookPrefs = await bookPreferencesRepo.get(bookIdNum);
       const resolved = resolvePreferences(
-        { defaultReadingMode: globalDefaults.defaultReadingMode, defaultReadingDirection: globalDefaults.defaultReadingDirection },
+        { defaultReadingMode: globalDefaults.defaultReadingMode, defaultReadingDirection: globalDefaults.defaultReadingDirection, defaultFitMode: globalDefaults.defaultFitMode },
         bookPrefs,
       );
       setReadingMode(resolved.readingMode);
       setReadingDirection(resolved.readingDirection);
+      setFitMode(resolved.fitMode);
 
       // Normalize index to spread start when in spread mode
       const { currentIndex } = useReaderStore.getState();
@@ -76,7 +80,7 @@ export default function Reader() {
       }
     }
     load();
-  }, [bookIdNum, setBookId, setPages, setCurrentIndex, setReadingMode, setReadingDirection]);
+  }, [bookIdNum, setBookId, setPages, setCurrentIndex, setReadingMode, setReadingDirection, setFitMode]);
 
   const saveProgress = useCallback(async () => {
     if (!bookIdNum || pages.length === 0) return;
@@ -150,6 +154,16 @@ export default function Reader() {
     [setReadingDirection, bookIdNum],
   );
 
+  const handleFitModeChange = useCallback(
+    (mode: FitMode) => {
+      setFitMode(mode);
+      if (bookIdNum) {
+        bookPreferencesRepo.upsert(bookIdNum, { fit_mode: mode });
+      }
+    },
+    [setFitMode, bookIdNum],
+  );
+
   const handleVisiblePageChange = useCallback(
     (index: number) => {
       setCurrentIndex(index);
@@ -182,15 +196,18 @@ export default function Reader() {
         totalPages={totalPages}
         readingMode={readingMode}
         readingDirection={readingDirection}
+        fitMode={fitMode}
         onBack={() => navigate("/")}
         onModeChange={handleModeChange}
         onDirectionChange={handleDirectionChange}
+        onFitModeChange={handleFitModeChange}
       />
       {readingMode === "single" ? (
         <SinglePageViewer
           pages={pages}
           currentIndex={currentIndex}
           readingDirection={readingDirection}
+          fitMode={fitMode}
           onNext={nextPage}
           onPrev={prevPage}
         />
@@ -199,6 +216,7 @@ export default function Reader() {
           pages={pages}
           currentIndex={currentIndex}
           readingDirection={readingDirection}
+          fitMode={fitMode}
           onNext={nextSpread}
           onPrev={prevSpread}
         />

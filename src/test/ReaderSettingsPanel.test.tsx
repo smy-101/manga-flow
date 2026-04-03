@@ -6,9 +6,11 @@ describe("ReaderSettingsPanel", () => {
   const defaultProps = {
     readingMode: "single" as const,
     readingDirection: "ltr" as const,
+    fitMode: "best-fit" as const,
     totalPages: 10,
     onModeChange: vi.fn(),
     onDirectionChange: vi.fn(),
+    onFitModeChange: vi.fn(),
     onClose: vi.fn(),
   };
 
@@ -21,6 +23,7 @@ describe("ReaderSettingsPanel", () => {
     render(<ReaderSettingsPanel {...defaultProps} />);
     expect(screen.getByText("阅读模式")).toBeInTheDocument();
     expect(screen.getByText("阅读方向")).toBeInTheDocument();
+    expect(screen.getByText("适配模式")).toBeInTheDocument();
   });
 
   it("renders mode options", async () => {
@@ -93,5 +96,50 @@ describe("ReaderSettingsPanel", () => {
     const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
     render(<ReaderSettingsPanel {...defaultProps} totalPages={2} />);
     expect(screen.getByText("双页展开")).not.toBeDisabled();
+  });
+
+  it("renders fit mode options", async () => {
+    const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
+    render(<ReaderSettingsPanel {...defaultProps} />);
+    expect(screen.getByText("最佳适配")).toBeInTheDocument();
+    expect(screen.getByText("适配宽度")).toBeInTheDocument();
+    expect(screen.getByText("适配高度")).toBeInTheDocument();
+    expect(screen.getByText("原始大小")).toBeInTheDocument();
+  });
+
+  it("highlights current fit mode", async () => {
+    const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
+    render(<ReaderSettingsPanel {...defaultProps} />);
+    expect(screen.getByText("最佳适配").closest(".settings-option")).toHaveClass("settings-option--active");
+  });
+
+  it("calls onFitModeChange when clicking a fit mode option", async () => {
+    const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
+    const onFitModeChange = vi.fn();
+    render(<ReaderSettingsPanel {...defaultProps} onFitModeChange={onFitModeChange} />);
+    await userEvent.click(screen.getByText("适配宽度"));
+    expect(onFitModeChange).toHaveBeenCalledWith("fit-width");
+  });
+
+  it("disables fit mode options in continuous scroll mode", async () => {
+    const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
+    render(<ReaderSettingsPanel {...defaultProps} readingMode="continuous" />);
+    expect(screen.getByText("最佳适配")).toBeDisabled();
+    expect(screen.getByText("适配宽度")).toBeDisabled();
+    expect(screen.getByText("适配高度")).toBeDisabled();
+    expect(screen.getByText("原始大小")).toBeDisabled();
+  });
+
+  it("enables fit mode options in single page mode", async () => {
+    const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
+    render(<ReaderSettingsPanel {...defaultProps} readingMode="single" />);
+    expect(screen.getByText("最佳适配")).not.toBeDisabled();
+    expect(screen.getByText("适配宽度")).not.toBeDisabled();
+  });
+
+  it("shows disabled hint in continuous scroll mode", async () => {
+    const { default: ReaderSettingsPanel } = await import("../components/ReaderSettingsPanel");
+    render(<ReaderSettingsPanel {...defaultProps} readingMode="continuous" />);
+    expect(screen.getByText("连续滚动模式下不可用")).toBeInTheDocument();
   });
 });

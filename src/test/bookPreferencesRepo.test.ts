@@ -49,11 +49,11 @@ describe("bookPreferencesRepo", () => {
 
     expect(mockExecute).toHaveBeenCalledWith(
       expect.stringContaining("INSERT INTO book_preferences"),
-      [1, "continuous", "ltr"],
+      [1, "continuous", "ltr", null],
     );
     expect(mockExecute).toHaveBeenCalledWith(
       expect.stringContaining("ON CONFLICT(book_id)"),
-      [1, "continuous", "ltr"],
+      [1, "continuous", "ltr", null],
     );
   });
 
@@ -65,18 +65,48 @@ describe("bookPreferencesRepo", () => {
 
     expect(mockExecute).toHaveBeenCalledWith(
       expect.stringContaining("ON CONFLICT(book_id) DO UPDATE"),
-      [5, "single", "rtl"],
+      [5, "single", "rtl", null],
     );
   });
 
   it("get returns record with NULL fields correctly", async () => {
-    const pref = { book_id: 3, reading_mode: null, reading_direction: null };
+    const pref = { book_id: 3, reading_mode: null, reading_direction: null, fit_mode: null };
     mockSelect.mockResolvedValue([pref]);
 
     const { bookPreferencesRepo } = await import("../repos/bookPreferencesRepo");
     const result = await bookPreferencesRepo.get(3);
 
-    expect(result).toEqual({ book_id: 3, reading_mode: null, reading_direction: null });
+    expect(result).toEqual({ book_id: 3, reading_mode: null, reading_direction: null, fit_mode: null });
+  });
+
+  it("get returns record with fit_mode", async () => {
+    const pref = { book_id: 1, reading_mode: "single", reading_direction: "ltr", fit_mode: "fit-width" };
+    mockSelect.mockResolvedValue([pref]);
+
+    const { bookPreferencesRepo } = await import("../repos/bookPreferencesRepo");
+    const result = await bookPreferencesRepo.get(1);
+
+    expect(result).toEqual(pref);
+  });
+
+  it("upsert includes fit_mode parameter", async () => {
+    const { bookPreferencesRepo } = await import("../repos/bookPreferencesRepo");
+    await bookPreferencesRepo.upsert(1, { reading_mode: "continuous", reading_direction: "ltr", fit_mode: "original" });
+
+    expect(mockExecute).toHaveBeenCalledWith(
+      expect.stringContaining("INSERT INTO book_preferences"),
+      [1, "continuous", "ltr", "original"],
+    );
+  });
+
+  it("upsert COALESCE preserves existing fit_mode when null passed", async () => {
+    const { bookPreferencesRepo } = await import("../repos/bookPreferencesRepo");
+    await bookPreferencesRepo.upsert(1, { reading_mode: "single", reading_direction: null, fit_mode: null });
+
+    expect(mockExecute).toHaveBeenCalledWith(
+      expect.stringContaining("COALESCE"),
+      [1, "single", null, null],
+    );
   });
 
   it("cascade delete works — deleting book removes preference", async () => {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ReadingMode, ReadingDirection } from "../stores/readerStore";
+import type { ReadingMode, ReadingDirection, FitMode } from "../stores/readerStore";
 import { getSpreadPages } from "../utils/spreadUtils";
 import ReaderSettingsPanel from "./ReaderSettingsPanel";
 import "./ReaderToolbar.css";
@@ -10,9 +10,11 @@ interface ReaderToolbarProps {
   totalPages: number;
   readingMode: ReadingMode;
   readingDirection: ReadingDirection;
+  fitMode: FitMode;
   onBack: () => void;
   onModeChange: (mode: ReadingMode) => void;
   onDirectionChange: (direction: ReadingDirection) => void;
+  onFitModeChange: (mode: FitMode) => void;
 }
 
 export default function ReaderToolbar({
@@ -21,9 +23,11 @@ export default function ReaderToolbar({
   totalPages,
   readingMode,
   readingDirection,
+  fitMode,
   onBack,
   onModeChange,
   onDirectionChange,
+  onFitModeChange,
 }: ReaderToolbarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -65,9 +69,11 @@ export default function ReaderToolbar({
           <ReaderSettingsPanel
             readingMode={readingMode}
             readingDirection={readingDirection}
+            fitMode={fitMode}
             totalPages={totalPages}
             onModeChange={onModeChange}
             onDirectionChange={onDirectionChange}
+            onFitModeChange={onFitModeChange}
             onClose={() => setSettingsOpen(false)}
           />
         )}

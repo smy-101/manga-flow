@@ -1,22 +1,26 @@
 import { useEffect, useRef } from "react";
-import type { ReadingMode, ReadingDirection } from "../stores/readerStore";
+import type { ReadingMode, ReadingDirection, FitMode } from "../stores/readerStore";
 import "./ReaderSettingsPanel.css";
 
 interface ReaderSettingsPanelProps {
   readingMode: ReadingMode;
   readingDirection: ReadingDirection;
+  fitMode: FitMode;
   totalPages: number;
   onModeChange: (mode: ReadingMode) => void;
   onDirectionChange: (direction: ReadingDirection) => void;
+  onFitModeChange: (mode: FitMode) => void;
   onClose: () => void;
 }
 
 export default function ReaderSettingsPanel({
   readingMode,
   readingDirection,
+  fitMode,
   totalPages,
   onModeChange,
   onDirectionChange,
+  onFitModeChange,
   onClose,
 }: ReaderSettingsPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -87,6 +91,42 @@ export default function ReaderSettingsPanel({
             从右到左
           </button>
         </div>
+      </div>
+      <div className="settings-group">
+        <div className="settings-group__title">适配模式</div>
+        <div className="settings-group__options">
+          <button
+            className={`settings-option ${fitMode === "best-fit" ? "settings-option--active" : ""}`}
+            onClick={() => onFitModeChange("best-fit")}
+            disabled={readingMode === "continuous"}
+          >
+            最佳适配
+          </button>
+          <button
+            className={`settings-option ${fitMode === "fit-width" ? "settings-option--active" : ""}`}
+            onClick={() => onFitModeChange("fit-width")}
+            disabled={readingMode === "continuous"}
+          >
+            适配宽度
+          </button>
+          <button
+            className={`settings-option ${fitMode === "fit-height" ? "settings-option--active" : ""}`}
+            onClick={() => onFitModeChange("fit-height")}
+            disabled={readingMode === "continuous"}
+          >
+            适配高度
+          </button>
+          <button
+            className={`settings-option ${fitMode === "original" ? "settings-option--active" : ""}`}
+            onClick={() => onFitModeChange("original")}
+            disabled={readingMode === "continuous"}
+          >
+            原始大小
+          </button>
+        </div>
+        {readingMode === "continuous" && (
+          <div className="settings-group__hint">连续滚动模式下不可用</div>
+        )}
       </div>
     </div>
   );

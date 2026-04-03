@@ -22,6 +22,7 @@ export function getPreloadRange(
 
 export type ReadingMode = "single" | "continuous" | "spread";
 export type ReadingDirection = "ltr" | "rtl";
+export type FitMode = "best-fit" | "fit-width" | "fit-height" | "original";
 
 interface ReaderState {
   bookId: number | null;
@@ -29,11 +30,13 @@ interface ReaderState {
   currentIndex: number;
   readingMode: ReadingMode;
   readingDirection: ReadingDirection;
+  fitMode: FitMode;
   setBookId: (id: number) => void;
   setPages: (pages: Page[]) => void;
   setCurrentIndex: (index: number) => void;
   setReadingMode: (mode: ReadingMode) => void;
   setReadingDirection: (direction: ReadingDirection) => void;
+  setFitMode: (mode: FitMode) => void;
   nextPage: () => void;
   prevPage: () => void;
   nextSpread: () => void;
@@ -46,11 +49,13 @@ export const useReaderStore = create<ReaderState>()((set) => ({
   currentIndex: 0,
   readingMode: "single",
   readingDirection: "ltr",
+  fitMode: "best-fit",
   setBookId: (id) => set({ bookId: id, currentIndex: 0, pages: [] }),
   setPages: (pages) => set({ pages }),
   setCurrentIndex: (index) => set({ currentIndex: index }),
   setReadingMode: (mode) => set({ readingMode: mode }),
   setReadingDirection: (direction) => set({ readingDirection: direction }),
+  setFitMode: (mode) => set({ fitMode: mode }),
   nextPage: () =>
     set((s) => ({
       currentIndex: Math.min(s.currentIndex + 1, s.pages.length - 1),

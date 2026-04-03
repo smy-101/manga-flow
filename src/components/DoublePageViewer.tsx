@@ -4,7 +4,7 @@ import {
   getSpreadPages,
   getPreloadRangeForSpread,
 } from "../utils/spreadUtils";
-import type { ReadingDirection } from "../stores/readerStore";
+import type { ReadingDirection, FitMode } from "../stores/readerStore";
 import type { Page } from "../db/types";
 import "./DoublePageViewer.css";
 
@@ -12,6 +12,7 @@ interface DoublePageViewerProps {
   pages: Page[];
   currentIndex: number;
   readingDirection?: ReadingDirection;
+  fitMode?: FitMode;
   onNext: () => void;
   onPrev: () => void;
 }
@@ -20,6 +21,7 @@ export default function DoublePageViewer({
   pages,
   currentIndex,
   readingDirection = "ltr",
+  fitMode = "best-fit",
   onNext,
   onPrev,
 }: DoublePageViewerProps) {
@@ -57,14 +59,14 @@ export default function DoublePageViewer({
 
   return (
     <>
-      <div className="spread-image-area" onClick={handleClick}>
+      <div className={`spread-image-area${fitMode !== "best-fit" ? " spread-image-area--scrollable" : ""}`} onClick={handleClick}>
         {displayIndices.map((idx) => {
           const page = pages[idx];
           if (!page) return null;
           return (
             <img
               key={idx}
-              className={`spread-image${isSolo ? " spread-image--solo" : ""}`}
+              className={`spread-image${isSolo ? " spread-image--solo" : ""}${fitMode !== "best-fit" ? ` spread-image--${fitMode}` : ""}`}
               src={convertFileSrc(page.file_path)}
               alt={`Page ${idx + 1}`}
             />

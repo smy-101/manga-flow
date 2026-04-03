@@ -7,10 +7,33 @@
   cursor: pointer;
 }
 
+.reader-image-area--scrollable {
+  overflow: auto;
+}
+
 .reader-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.reader-image--fit-width {
+  width: 100%;
+  height: auto;
+  object-fit: unset;
+}
+
+.reader-image--fit-height {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: unset;
+}
+
+.reader-image--original {
+  width: auto;
+  height: auto;
+  object-fit: unset;
 }

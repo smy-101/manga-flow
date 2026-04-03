@@ -17,6 +17,7 @@ describe("useReaderStore", () => {
       currentIndex: 0,
       readingMode: "single",
       readingDirection: "ltr",
+      fitMode: "best-fit",
     });
   });
 
@@ -88,6 +89,17 @@ describe("useReaderStore", () => {
     useReaderStore.getState().setReadingDirection("ltr");
     expect(useReaderStore.getState().readingDirection).toBe("ltr");
   });
+
+  it('defaults fitMode to "best-fit"', () => {
+    expect(useReaderStore.getState().fitMode).toBe("best-fit");
+  });
+
+  it("switches fitMode via setFitMode", () => {
+    useReaderStore.getState().setFitMode("fit-width");
+    expect(useReaderStore.getState().fitMode).toBe("fit-width");
+    useReaderStore.getState().setFitMode("original");
+    expect(useReaderStore.getState().fitMode).toBe("original");
+  });
 });
 
 describe("getPreloadRange", () => {
@@ -153,6 +165,7 @@ describe("nextSpread / prevSpread", () => {
       currentIndex: 0,
       readingMode: "single",
       readingDirection: "ltr",
+      fitMode: "best-fit",
     });
   });
 
